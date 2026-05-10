@@ -10,7 +10,7 @@ const SLOTS = [
   { dir: 'up', clip: 'inset(0 0 0 66.6667%)', tint: 'rgba(80, 200, 255, 0.28)', dipPct: 0.9 },
 ]
 
-export default function RouteTransition({ children, intensity = 1, duration = 2.5 }) {
+export default function RouteTransition({ children, intensity = 1, duration = 3.5 }) {
   const location = useLocation()
   const reduced = useReducedMotion()
 
@@ -95,10 +95,10 @@ function SplitOverlay({ snapshot, scrollTop, intensity, duration }) {
 
 function Panel({ slot, snapshot, scrollTop, intensity, duration }) {
   const hostRef = useRef(null)
-  const burstFrac = 0.26
   const blurMax = 14 * intensity
   const stretch = 1 + 0.25 * intensity
-  const yOut = slot.dir === 'up' ? '-115%' : '115%'
+  const yOut = slot.dir === 'up' ? '-130%' : '130%'
+  const yMid = slot.dir === 'up' ? '-55%' : '55%'
 
   useEffect(() => {
     const host = hostRef.current
@@ -136,19 +136,20 @@ function Panel({ slot, snapshot, scrollTop, intensity, duration }) {
       }}
       initial={{ y: 0, scaleY: 1, filter: 'blur(0px) brightness(1)', opacity: 1 }}
       animate={{
-        y: [0, `${slot.dipPct}%`, yOut],
-        scaleY: [1, 0.985, stretch],
+        y: [0, `${slot.dipPct}%`, yMid, yOut],
+        scaleY: [1, 0.985, stretch, stretch * 0.95],
         filter: [
           'blur(0px) brightness(1)',
           'blur(0px) brightness(1)',
           `blur(${blurMax}px) brightness(0.55)`,
+          `blur(${blurMax * 0.4}px) brightness(0.4)`,
         ],
-        opacity: [1, 1, 0],
+        opacity: [1, 1, 1, 0],
       }}
       transition={{
         duration,
         ease: EASE,
-        times: [0, 0.032, burstFrac],
+        times: [0, 0.025, 0.4, 1],
       }}
     >
       <div
