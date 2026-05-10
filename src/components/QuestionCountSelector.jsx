@@ -1,20 +1,18 @@
-import { useTheme } from '../contexts/ThemeContext.jsx'
 import { playClick } from '../utils/sounds.js'
 
 const counts = [10, 15, 20, 25]
 
 export default function QuestionCountSelector({ value, onChange, maxAvailable = 25 }) {
-  const { colors, accentRgb } = useTheme()
-
   return (
-    <div className="flex gap-2 justify-center flex-wrap">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-xs mr-1" style={{ color: '#9aa0a6' }}>Questions:</span>
       {counts.map((count) => {
         const isActive = value === count
         const isDisabled = count > maxAvailable
-
         return (
           <button
             key={count}
+            type="button"
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
@@ -24,12 +22,17 @@ export default function QuestionCountSelector({ value, onChange, maxAvailable = 
               }
             }}
             disabled={isDisabled}
-            className="px-4 py-1.5 rounded-full text-xs font-heading font-semibold transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-3 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             style={{
-              backgroundColor: isActive ? colors.accent : 'rgba(255,255,255,0.05)',
-              color: isActive ? '#fff' : 'var(--color-text-secondary)',
-              border: isActive ? `1px solid ${colors.accent}` : '1px solid rgba(255,255,255,0.1)',
-              boxShadow: isActive ? `0 0 12px rgba(${accentRgb}, 0.3)` : 'none',
+              backgroundColor: isActive ? '#f9ab00' : 'transparent',
+              color: isActive ? '#1f1f1f' : '#9aa0a6',
+              border: isActive ? '1px solid #f9ab00' : '1px solid #3c3c3c',
+            }}
+            onMouseEnter={(e) => {
+              if (!isActive && !isDisabled) e.currentTarget.style.backgroundColor = '#353535'
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive && !isDisabled) e.currentTarget.style.backgroundColor = 'transparent'
             }}
           >
             {count}

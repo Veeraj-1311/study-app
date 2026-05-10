@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit, Palette, Flame } from 'lucide-react'
+import { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit, Flame, ChevronRight } from 'lucide-react'
 import quizData from '../data/quizData.js'
 import { playClick } from '../utils/sounds.js'
 import PageTransition from '../components/PageTransition'
 import { useTheme } from '../contexts/ThemeContext.jsx'
-import CustomizePanel from '../components/CustomizePanel.jsx'
 import useStreak from '../hooks/useStreak.js'
 
 const iconMap = { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit }
@@ -19,15 +18,6 @@ const quotes = [
   'Success is the sum of small efforts repeated day in and day out.',
 ]
 
-const cardVariants = {
-  initial: { opacity: 0, y: 30 },
-  animate: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: { type: 'spring', stiffness: 80, damping: 18, delay: i * 0.1 },
-  }),
-}
-
 const getProgress = () => {
   try {
     return JSON.parse(localStorage.getItem('learnflow-progress') || '{}')
@@ -36,43 +26,44 @@ const getProgress = () => {
   }
 }
 
-function ProgressRing({ completed, total, color, size = 48, strokeWidth = 4 }) {
-  const { accentRgb } = useTheme()
-  const radius = (size - strokeWidth) / 2
-  const circumference = 2 * Math.PI * radius
-  const percent = total > 0 ? completed / total : 0
-  const offset = circumference - percent * circumference
-
+function StreakChip() {
+  const { streak, todayMinutes, goalReached, progress } = useStreak()
+  const flameOn = streak > 0
   return (
-    <svg width={size} height={size} className="transform -rotate-90">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={`rgba(${accentRgb}, 0.15)`}
-        strokeWidth={strokeWidth}
+    <div
+      className="inline-flex items-center gap-3 px-4 py-2 rounded-full"
+      style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}
+    >
+      <Flame
+        size={16}
+        style={{ color: flameOn ? '#f9ab00' : '#5f6368' }}
+        fill={flameOn ? '#f9ab00' : 'none'}
       />
-      <motion.circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        initial={{ strokeDashoffset: circumference }}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 1, delay: 0.5, ease: 'easeOut' }}
-      />
-    </svg>
+      <span className="text-sm" style={{ color: '#e8eaed' }}>
+        {streak} day{streak !== 1 ? 's' : ''}
+      </span>
+      <span style={{ color: '#3c3c3c' }}>·</span>
+      <span className="text-sm" style={{ color: '#9aa0a6' }}>
+        {goalReached ? 'Goal reached' : `${todayMinutes}/30 min`}
+      </span>
+      <div
+        className="h-1 w-12 rounded-full overflow-hidden ml-1"
+        style={{ backgroundColor: '#3c3c3c' }}
+      >
+        <motion.div
+          className="h-full rounded-full"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress * 100}%` }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          style={{ backgroundColor: '#f9ab00' }}
+        />
+      </div>
+    </div>
   )
 }
 
-function SubjectCard({ subjectId, subject, index, progress }) {
-  const [hovered, setHovered] = useState(false)
-  const { getSubjectColor, accentRgb } = useTheme()
+function SubjectCard({ subjectId, subject, progress, index }) {
+  const { getSubjectColor } = useTheme()
   const IconComponent = iconMap[subject.icon]
   const subjectProgress = progress[subjectId] || {}
   let completed = 0
@@ -80,232 +71,125 @@ function SubjectCard({ subjectId, subject, index, progress }) {
     if (subjectProgress[ch.id]?.status === 'completed') completed++
   })
   const total = subject.chapters.length
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0
   const color = getSubjectColor(subjectId)
 
-  const iconColor = hovered ? color : '#6a6a70'
-  const iconBg = hovered ? `${color}20` : 'rgba(255,255,255,0.05)'
-  const nameColor = hovered ? color : '#a0a0a5'
-  const ringColor = hovered ? color : '#6a6a70'
-
   return (
     <motion.div
-      custom={index}
-      variants={cardVariants}
-      initial="initial"
-      animate="animate"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.04, ease: 'easeOut' }}
     >
-      <Link to={`/subject/${subjectId}`} className="block" onClick={playClick}>
-        <motion.div
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          whileHover={{
-            scale: 1.04,
-            borderColor: color,
-            boxShadow: `0 0 25px ${color}30, 0 0 50px ${color}15, inset 0 0 30px ${color}08`,
+      <Link to={`/subject/${subjectId}`} onClick={playClick} className="block group">
+        <div
+          className="rounded-2xl p-5 h-full transition-colors"
+          style={{
+            backgroundColor: '#2a2a2a',
+            border: '1px solid #3c3c3c',
           }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 22 }}
-          className="bg-bg-card/80 backdrop-blur-xl rounded-2xl p-7 cursor-pointer h-full"
-          style={{ border: `1px solid rgba(${accentRgb}, 0.15)` }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#353535' }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#2a2a2a' }}
         >
-          <div className="flex items-start justify-between mb-5">
+          <div className="flex items-center justify-between mb-5">
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300"
-              style={{ backgroundColor: iconBg }}
+              className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: `${color}20` }}
             >
-              {IconComponent && (
-                <IconComponent size={24} className="transition-all duration-300" style={{ color: iconColor }} />
-              )}
+              {IconComponent && <IconComponent size={20} style={{ color }} strokeWidth={2} />}
             </div>
-            <div className="relative">
-              <ProgressRing completed={completed} total={total} color={ringColor} />
-              <span className="absolute inset-0 flex items-center justify-center text-xs text-text-secondary font-medium">
-                {total > 0 ? Math.round((completed / total) * 100) : 0}%
-              </span>
-            </div>
+            <ChevronRight size={18} style={{ color: '#5f6368' }} />
           </div>
 
-          <h3
-            className="text-xl font-heading font-semibold mb-1 transition-all duration-300"
-            style={{ color: nameColor }}
-          >
+          <h3 className="text-base font-medium mb-1" style={{ color: '#e8eaed' }}>
             {subject.name}
           </h3>
-          <p className="text-text-muted text-sm transition-colors duration-300">
-            {subject.chapters.length} chapter{subject.chapters.length !== 1 ? 's' : ''} ·{' '}
-            {completed} completed
+          <p className="text-xs mb-4" style={{ color: '#9aa0a6' }}>
+            {total} chapter{total !== 1 ? 's' : ''} · {completed} done
           </p>
-        </motion.div>
+
+          <div className="flex items-center gap-2">
+            <div
+              className="h-1 flex-1 rounded-full overflow-hidden"
+              style={{ backgroundColor: '#3c3c3c' }}
+            >
+              <motion.div
+                className="h-full rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.6, delay: 0.1 + index * 0.04, ease: 'easeOut' }}
+                style={{ backgroundColor: color }}
+              />
+            </div>
+            <span className="text-xs tabular-nums" style={{ color: '#9aa0a6' }}>{pct}%</span>
+          </div>
+        </div>
       </Link>
-    </motion.div>
-  )
-}
-
-function StreakBar() {
-  const { streak, todayMinutes, goalReached, progress } = useStreak()
-  const { colors, accentRgb } = useTheme()
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 100, damping: 18 }}
-      className="w-full max-w-md mx-auto mb-6"
-    >
-      <div
-        className="bg-bg-card/80 backdrop-blur-xl rounded-2xl px-5 py-3 flex items-center gap-4"
-        style={{ border: `1px solid rgba(${accentRgb}, 0.15)` }}
-      >
-        {/* Flame + streak count */}
-        <div className="flex items-center gap-2">
-          <motion.div
-            animate={goalReached ? {
-              scale: [1, 1.2, 1],
-              rotate: [0, -8, 8, 0],
-            } : {}}
-            transition={{ duration: 0.6, repeat: goalReached ? Infinity : 0, repeatDelay: 2 }}
-          >
-            <Flame
-              size={28}
-              style={{
-                color: streak > 0 ? '#f97316' : '#6a6a70',
-                filter: streak > 0 ? 'drop-shadow(0 0 6px rgba(249, 115, 22, 0.5))' : 'none',
-              }}
-              fill={streak > 0 ? '#f97316' : 'none'}
-            />
-          </motion.div>
-          <div>
-            <span className="text-2xl font-heading font-bold" style={{ color: streak > 0 ? '#f97316' : '#6a6a70' }}>
-              {streak}
-            </span>
-            <span className="text-text-muted text-xs ml-1">day{streak !== 1 ? 's' : ''}</span>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-text-secondary text-xs font-medium">
-              {goalReached ? 'Goal reached!' : `${todayMinutes}/30 min today`}
-            </span>
-          </div>
-          <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: `rgba(${accentRgb}, 0.1)` }}>
-            <motion.div
-              className="h-full rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${progress * 100}%` }}
-              transition={{ duration: 1, ease: 'easeOut' }}
-              style={{
-                background: goalReached
-                  ? 'linear-gradient(90deg, #f97316, #facc15)'
-                  : `linear-gradient(90deg, ${colors.accent}, ${colors.accentCyan})`,
-              }}
-            />
-          </div>
-        </div>
-      </div>
     </motion.div>
   )
 }
 
 export default function Home() {
   const [quoteIndex, setQuoteIndex] = useState(0)
-  const [showCustomize, setShowCustomize] = useState(false)
   const progress = getProgress()
-  const { colors, accentRgb } = useTheme()
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setQuoteIndex((prev) => (prev + 1) % quotes.length)
-    }, 8000)
-    return () => clearInterval(interval)
+    const id = setInterval(() => setQuoteIndex((p) => (p + 1) % quotes.length), 8000)
+    return () => clearInterval(id)
   }, [])
 
   const subjects = Object.entries(quizData)
 
   return (
-    <PageTransition
-      className="min-h-screen w-full px-6 py-10 sm:px-10 lg:px-16"
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
-    >
-      {/* Streak Bar */}
-      <StreakBar />
-
-      {/* Header — Bigger Logo with Pulse */}
-      <div className="mb-8 w-full" style={{ display: 'flex', justifyContent: 'center' }}>
-        <motion.img
-          src="/logo.png"
-          alt="LearnFlow"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 80, damping: 15 }}
-          style={{
-            height: '13rem',
-            display: 'block',
-            margin: '0 auto',
-            objectFit: 'contain',
-            animation: 'pulseGlow 4s ease-in-out infinite',
-          }}
-        />
-      </div>
-
-      {/* Subject Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7 mb-10 w-full max-w-7xl mx-auto">
-        {subjects.map(([subjectId, subject], index) => (
-          <SubjectCard
-            key={subjectId}
-            subjectId={subjectId}
-            subject={subject}
-            index={index}
-            progress={progress}
-          />
-        ))}
-      </div>
-
-      {/* Motivational Quotes */}
-      <div className="text-center h-16 flex items-center justify-center w-full">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={quoteIndex}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.5 }}
-            className="text-text-muted italic text-sm sm:text-base max-w-lg mx-auto"
-          >
-            "{quotes[quoteIndex]}"
-          </motion.p>
-        </AnimatePresence>
-      </div>
-
-      {/* Customize Button */}
-      <motion.button
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
-        onClick={() => { setShowCustomize(true); playClick() }}
-        className="mt-4 flex items-center gap-2 px-6 py-3 rounded-xl font-heading font-semibold text-sm cursor-pointer transition-all duration-300"
-        style={{
-          border: `1px solid rgba(${accentRgb}, 0.3)`,
-          color: colors.accent,
-          backgroundColor: `rgba(${accentRgb}, 0.08)`,
-        }}
-        whileHover={{
-          scale: 1.05,
-          boxShadow: `0 0 20px rgba(${accentRgb}, 0.3)`,
-        }}
-        whileTap={{ scale: 0.95 }}
+    <PageTransition>
+      <div
+        className="min-h-screen w-full"
+        style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}
       >
-        <Palette size={18} />
-        Customize
-      </motion.button>
+        <div className="max-w-5xl mx-auto px-6 py-12 sm:py-16">
+          <header className="flex items-center justify-between mb-12">
+            <div>
+              <h1
+                className="text-3xl sm:text-4xl font-medium tracking-tight"
+                style={{ color: '#e8eaed', letterSpacing: '-0.02em' }}
+              >
+                LearnFlow
+              </h1>
+              <p className="text-sm mt-1" style={{ color: '#9aa0a6' }}>
+                Pick a subject to continue.
+              </p>
+            </div>
+            <StreakChip />
+          </header>
 
-      {/* Customize Panel */}
-      <AnimatePresence>
-        {showCustomize && (
-          <CustomizePanel onClose={() => setShowCustomize(false)} />
-        )}
-      </AnimatePresence>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-16">
+            {subjects.map(([subjectId, subject], index) => (
+              <SubjectCard
+                key={subjectId}
+                subjectId={subjectId}
+                subject={subject}
+                progress={progress}
+                index={index}
+              />
+            ))}
+          </div>
+
+          <div className="border-t pt-8" style={{ borderColor: '#3c3c3c' }}>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={quoteIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="text-sm text-center"
+                style={{ color: '#5f6368', fontStyle: 'italic' }}
+              >
+                "{quotes[quoteIndex]}"
+              </motion.p>
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
     </PageTransition>
   )
 }

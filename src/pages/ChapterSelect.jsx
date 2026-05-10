@@ -1,21 +1,12 @@
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit } from 'lucide-react'
+import { ArrowLeft, Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit, ChevronRight, CheckCircle2, Clock } from 'lucide-react'
 import quizData from '../data/quizData.js'
 import { playClick } from '../utils/sounds.js'
 import PageTransition from '../components/PageTransition'
 import { useTheme, useSubjectBackground } from '../contexts/ThemeContext.jsx'
 
 const iconMap = { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit }
-
-const itemVariants = {
-  initial: { opacity: 0, y: 20 },
-  animate: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: { type: 'spring', stiffness: 80, damping: 18, delay: i * 0.06 },
-  }),
-}
 
 const getProgress = () => {
   try {
@@ -25,50 +16,46 @@ const getProgress = () => {
   }
 }
 
-function StatusBadge({ status }) {
+function StatusIndicator({ status, score, total }) {
   if (status === 'completed') {
     return (
-      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400">
-        Completed
-      </span>
+      <div className="flex items-center gap-1.5 text-xs" style={{ color: '#81c995' }}>
+        <CheckCircle2 size={14} />
+        <span>Done · {score}/{total}</span>
+      </div>
     )
   }
   if (status === 'in_progress') {
     return (
-      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
-        In Progress
-      </span>
+      <div className="flex items-center gap-1.5 text-xs" style={{ color: '#fdd663' }}>
+        <Clock size={14} />
+        <span>In progress</span>
+      </div>
     )
   }
-  return (
-    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-text-muted">
-      Not Started
-    </span>
-  )
+  return null
 }
 
 export default function ChapterSelect() {
   const { subjectId } = useParams()
   const subject = quizData[subjectId]
-  const { colors, accentRgb, accentCyanRgb, getSubjectColor } = useTheme()
+  const { getSubjectColor } = useTheme()
   useSubjectBackground(subjectId)
 
   if (!subject) {
     return (
-      <PageTransition
-        className="min-h-screen flex flex-col items-center justify-center px-4"
-      >
-        <h2 className="text-2xl font-heading font-semibold text-text-primary mb-4">
-          Subject not found
-        </h2>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 transition-all duration-300"
-          style={{ color: colors.accentCyan }}
-        >
-          <ArrowLeft size={18} />
-          Back to Home
-        </Link>
+      <PageTransition>
+        <div className="min-h-screen w-full flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+          <h2 className="text-2xl font-medium mb-3" style={{ letterSpacing: '-0.02em' }}>Subject not found</h2>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm"
+            style={{ color: '#f9ab00' }}
+          >
+            <ArrowLeft size={16} />
+            Back to Home
+          </Link>
+        </div>
       </PageTransition>
     )
   }
@@ -79,116 +66,88 @@ export default function ChapterSelect() {
   const subjectColor = getSubjectColor(subjectId)
 
   return (
-    <PageTransition
-      className="min-h-screen px-4 py-8 sm:px-6 lg:px-8 max-w-4xl mx-auto flex flex-col justify-center items-center"
-    >
-      {/* Back Button */}
-      <div className="w-full mb-6">
-        <Link to="/" onClick={playClick}>
-          <motion.div
-            className="w-14 h-14 rounded-full flex items-center justify-center cursor-pointer"
-            style={{
-              background: `linear-gradient(135deg, rgba(${accentCyanRgb}, 0.12), rgba(${accentRgb}, 0.12))`,
-              border: `2px solid rgba(${accentCyanRgb}, 0.3)`,
-              boxShadow: `0 0 15px rgba(${accentCyanRgb}, 0.1), inset 0 0 15px rgba(${accentCyanRgb}, 0.05)`,
-            }}
-            whileHover={{
-              scale: 1.15,
-              rotate: -10,
-              borderColor: colors.accentCyan,
-              boxShadow: `0 0 25px rgba(${accentCyanRgb}, 0.35), inset 0 0 20px rgba(${accentCyanRgb}, 0.1)`,
-            }}
-            whileTap={{ scale: 0.85, rotate: -20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+    <PageTransition>
+      <div className="min-h-screen w-full" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+        <div className="max-w-3xl mx-auto px-6 py-10 sm:py-14">
+          <Link
+            to="/"
+            onClick={playClick}
+            className="inline-flex items-center gap-2 text-sm mb-10 transition-colors"
+            style={{ color: '#9aa0a6' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#e8eaed' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#9aa0a6' }}
           >
-            <ArrowLeft size={26} style={{ color: colors.accentCyan }} />
-          </motion.div>
-        </Link>
-      </div>
+            <ArrowLeft size={16} />
+            Back
+          </Link>
 
-      {/* Title — Centered */}
-      <div className="flex flex-col items-center gap-3 mb-10">
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: `${subjectColor}20` }}
-        >
-          {IconComponent && <IconComponent size={24} style={{ color: subjectColor }} />}
-        </div>
-        <h1
-          className="text-2xl sm:text-3xl font-heading font-bold text-center"
-          style={{
-            color: subjectColor,
-            textShadow: `0 0 20px ${subjectColor}40`,
-          }}
-        >
-          {subject.name}
-        </h1>
-      </div>
-
-      {/* Chapter List */}
-      <div className="space-y-4 w-full">
-        {subject.chapters.map((chapter, index) => {
-          const chapterProgress = subjectProgress[chapter.id]
-          const status = chapterProgress?.status || 'not_started'
-          const bestScore = chapterProgress?.bestScore
-          const bestTotal = chapterProgress?.bestTotal || 10
-
-          return (
-            <motion.div
-              key={chapter.id}
-              custom={index}
-              variants={itemVariants}
-              initial="initial"
-              animate="animate"
+          <header className="flex items-center gap-4 mb-10">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: `${subjectColor}20` }}
             >
-              <Link to={`/chapter/${subjectId}/${chapter.id}`} className="block group" onClick={playClick}>
+              {IconComponent && <IconComponent size={24} style={{ color: subjectColor }} strokeWidth={2} />}
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-medium" style={{ color: '#e8eaed', letterSpacing: '-0.02em' }}>
+                {subject.name}
+              </h1>
+              <p className="text-sm mt-0.5" style={{ color: '#9aa0a6' }}>
+                {subject.chapters.length} chapter{subject.chapters.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </header>
+
+          <div className="space-y-2">
+            {subject.chapters.map((chapter, index) => {
+              const chapterProgress = subjectProgress[chapter.id]
+              const status = chapterProgress?.status || 'not_started'
+              const bestScore = chapterProgress?.bestScore
+              const bestTotal = chapterProgress?.bestTotal || 10
+
+              return (
                 <motion.div
-                  whileHover={{
-                    scale: 1.02,
-                    borderColor: `${subjectColor}60`,
-                    boxShadow: `0 0 20px ${subjectColor}20, 0 0 5px rgba(${accentRgb}, 0.1)`,
-                  }}
-                  whileTap={{ scale: 0.99 }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 22 }}
-                  className="bg-bg-card rounded-xl p-5 flex items-center gap-4"
-                  style={{ border: `1px solid rgba(${accentRgb}, 0.12)` }}
+                  key={chapter.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: index * 0.03, ease: 'easeOut' }}
                 >
-                  {/* Chapter Number */}
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold font-heading text-white"
-                    style={{
-                      backgroundColor: colors.accent,
-                    }}
-                  >
-                    {index + 1}
-                  </div>
+                  <Link to={`/chapter/${subjectId}/${chapter.id}`} onClick={playClick} className="block">
+                    <div
+                      className="flex items-center gap-4 px-5 py-4 rounded-xl transition-colors"
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#353535' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#2a2a2a' }}
+                    >
+                      <div
+                        className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-medium shrink-0"
+                        style={{ backgroundColor: '#1f1f1f', color: '#9aa0a6' }}
+                      >
+                        {index + 1}
+                      </div>
 
-                  {/* Chapter Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-text-primary font-heading font-semibold text-base group-hover:text-white transition-all duration-300 truncate">
-                      {chapter.name}
-                    </h3>
-                    {chapter.description && (
-                      <p className="text-text-muted text-sm mt-0.5 truncate">
-                        {chapter.description}
-                      </p>
-                    )}
-                  </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-medium truncate" style={{ color: '#e8eaed' }}>
+                          {chapter.name}
+                        </h3>
+                        {chapter.description && (
+                          <p className="text-xs mt-0.5 truncate" style={{ color: '#9aa0a6' }}>
+                            {chapter.description}
+                          </p>
+                        )}
+                      </div>
 
-                  {/* Status & Score */}
-                  <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <StatusBadge status={status} />
-                    {bestScore !== undefined && bestScore !== null && (
-                      <span className="text-xs text-text-muted">
-                        Best: {bestScore}/{bestTotal}
-                      </span>
-                    )}
-                  </div>
+                      <div className="shrink-0 flex items-center gap-3">
+                        <StatusIndicator status={status} score={bestScore} total={bestTotal} />
+                        <ChevronRight size={16} style={{ color: '#5f6368' }} />
+                      </div>
+                    </div>
+                  </Link>
                 </motion.div>
-              </Link>
-            </motion.div>
-          )
-        })}
+              )
+            })}
+          </div>
+        </div>
       </div>
     </PageTransition>
   )

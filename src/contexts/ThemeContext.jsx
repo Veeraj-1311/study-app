@@ -204,17 +204,5 @@ export function useTheme() {
   return ctx
 }
 
-// Hook for applying subject-specific backgrounds
-export function useSubjectBackground(subjectId) {
-  const { theme } = useTheme()
-
-  useEffect(() => {
-    const subjectBg = theme.subjectBackgrounds?.[subjectId]
-    const bg = subjectBg ? `url(${subjectBg})` : "url('/dragon.jpg')"
-    const prev = document.body.style.backgroundImage
-    document.body.style.backgroundImage = bg
-    return () => {
-      document.body.style.backgroundImage = prev
-    }
-  }, [subjectId, theme.subjectBackgrounds])
-}
+// No-op in minimal theme — subject backgrounds removed for clean surfaces.
+export function useSubjectBackground() {}

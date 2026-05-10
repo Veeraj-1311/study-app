@@ -5,42 +5,32 @@ import { ArrowLeft, Link as LinkIcon, X, Play, Trash2, Plus } from 'lucide-react
 import quizData from '../data/quizData.js'
 import { playClick } from '../utils/sounds.js'
 import PageTransition from '../components/PageTransition'
-import { useTheme, useSubjectBackground } from '../contexts/ThemeContext.jsx'
+import { useSubjectBackground } from '../contexts/ThemeContext.jsx'
 
 function extractVideoId(url) {
   if (!url) return null
-  const match1 = url.match(/[?&]v=([^&#]+)/)
-  if (match1) return match1[1]
-  const match2 = url.match(/youtu\.be\/([^?&#]+)/)
-  if (match2) return match2[1]
-  const match3 = url.match(/embed\/([^?&#]+)/)
-  if (match3) return match3[1]
+  const m1 = url.match(/[?&]v=([^&#]+)/); if (m1) return m1[1]
+  const m2 = url.match(/youtu\.be\/([^?&#]+)/); if (m2) return m2[1]
+  const m3 = url.match(/embed\/([^?&#]+)/); if (m3) return m3[1]
   if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim()
   return null
 }
 
-function getStorageKey(subjectId, chapterId) {
-  return `${subjectId}_${chapterId}`
-}
+const storageKey = (s, c) => `${s}_${c}`
 
 function getSavedVideos(subjectId, chapterId) {
   try {
     const data = JSON.parse(localStorage.getItem('learnflow-videos') || '{}')
-    return data[getStorageKey(subjectId, chapterId)] || []
-  } catch {
-    return []
-  }
+    return data[storageKey(subjectId, chapterId)] || []
+  } catch { return [] }
 }
 
 function saveVideos(subjectId, chapterId, videos) {
   try {
     const data = JSON.parse(localStorage.getItem('learnflow-videos') || '{}')
-    const key = getStorageKey(subjectId, chapterId)
-    if (videos.length > 0) {
-      data[key] = videos
-    } else {
-      delete data[key]
-    }
+    const k = storageKey(subjectId, chapterId)
+    if (videos.length > 0) data[k] = videos
+    else delete data[k]
     localStorage.setItem('learnflow-videos', JSON.stringify(data))
   } catch {}
 }
@@ -49,14 +39,11 @@ export default function VideoPlayer() {
   const { subjectId, chapterId } = useParams()
   const subject = quizData[subjectId]
   const chapter = subject?.chapters?.find((c) => c.id === Number(chapterId))
-  const { colors, accentRgb, accentCyanRgb, getSubjectColor } = useTheme()
   useSubjectBackground(subjectId)
 
   const [videos, setVideos] = useState(() => getSavedVideos(subjectId, chapterId))
   const [inputValue, setInputValue] = useState('')
   const [showInput, setShowInput] = useState(false)
-
-  const subjectColor = getSubjectColor(subjectId)
 
   const handleAdd = () => {
     const trimmed = inputValue.trim()
@@ -80,224 +67,165 @@ export default function VideoPlayer() {
 
   if (!subject || !chapter) {
     return (
-      <PageTransition
-        className="min-h-screen flex flex-col items-center justify-center px-4"
-      >
-        <h2 className="text-2xl font-heading font-semibold text-text-primary mb-4">
-          Chapter not found
-        </h2>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 transition-all duration-300"
-          style={{ color: colors.accentCyan }}
-        >
-          <ArrowLeft size={18} />
-          Back to Home
-        </Link>
+      <PageTransition>
+        <div className="min-h-screen w-full flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+          <h2 className="text-2xl font-medium mb-3" style={{ letterSpacing: '-0.02em' }}>Chapter not found</h2>
+          <Link to="/" className="inline-flex items-center gap-2 text-sm" style={{ color: '#f9ab00' }}>
+            <ArrowLeft size={16} />
+            Back to Home
+          </Link>
+        </div>
       </PageTransition>
     )
   }
 
   return (
-    <PageTransition
-      className="min-h-screen px-4 py-8 sm:px-6 lg:px-8 max-w-4xl mx-auto"
-    >
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Link
-          to={`/chapter/${subjectId}/${chapterId}`}
-          className="w-10 h-10 rounded-xl bg-bg-card flex items-center justify-center text-text-secondary transition-all duration-300"
-          style={{ border: `1px solid rgba(${accentRgb}, 0.15)` }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = colors.accentCyan
-            e.currentTarget.style.boxShadow = `0 0 15px rgba(${accentCyanRgb}, 0.3)`
-            e.currentTarget.style.color = colors.accentCyan
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = `rgba(${accentRgb}, 0.15)`
-            e.currentTarget.style.boxShadow = 'none'
-            e.currentTarget.style.color = ''
-          }}
-          onClick={playClick}
-        >
-          <ArrowLeft size={18} />
-        </Link>
-        <div className="flex-1">
-          <p className="text-text-muted text-sm">{subject.name}</p>
-          <h1
-            className="text-2xl sm:text-3xl font-heading font-bold"
-            style={{
-              color: subjectColor,
-              textShadow: `0 0 20px ${subjectColor}40`,
-            }}
+    <PageTransition>
+      <div className="min-h-screen w-full" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+        <div className="max-w-3xl mx-auto px-6 py-10 sm:py-14">
+          <Link
+            to={`/chapter/${subjectId}/${chapterId}`}
+            onClick={playClick}
+            className="inline-flex items-center gap-2 text-sm mb-10"
+            style={{ color: '#9aa0a6' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#e8eaed' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#9aa0a6' }}
           >
-            {chapter.name}
-          </h1>
+            <ArrowLeft size={16} />
+            Back
+          </Link>
+
+          <header className="mb-10">
+            <p className="text-sm mb-2" style={{ color: '#9aa0a6' }}>{subject.name} · Video</p>
+            <h1 className="text-2xl sm:text-3xl font-medium" style={{ color: '#e8eaed', letterSpacing: '-0.02em' }}>
+              {chapter.name}
+            </h1>
+          </header>
+
+          <div className="space-y-6">
+            <AnimatePresence>
+              {videos.map((url, index) => {
+                const vid = extractVideoId(url)
+                if (!vid) return null
+                return (
+                  <motion.div
+                    key={`${vid}-${index}`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25, delay: index * 0.04 }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm" style={{ color: '#9aa0a6' }}>
+                        Video {index + 1}
+                      </span>
+                      <button
+                        onClick={() => handleRemove(index)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors"
+                        style={{ color: '#9aa0a6', border: '1px solid #3c3c3c', backgroundColor: 'transparent' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = '#f28b82'; e.currentTarget.style.borderColor = '#f28b82' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = '#9aa0a6'; e.currentTarget.style.borderColor = '#3c3c3c' }}
+                      >
+                        <Trash2 size={12} />
+                        Remove
+                      </button>
+                    </div>
+
+                    <div
+                      className="w-full rounded-xl overflow-hidden"
+                      style={{ border: '1px solid #3c3c3c', backgroundColor: '#000' }}
+                    >
+                      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                        <iframe
+                          src={`https://www.youtube.com/embed/${vid}`}
+                          title={`${chapter.name} - Video ${index + 1}`}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </AnimatePresence>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.3 }}
+            className={videos.length > 0 ? 'mt-8' : ''}
+          >
+            {showInput ? (
+              <div
+                className="rounded-xl p-6"
+                style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <Play size={18} style={{ color: '#f9ab00' }} />
+                  <p className="text-sm font-medium" style={{ color: '#e8eaed' }}>Paste a YouTube link</p>
+                </div>
+
+                <div
+                  className="flex items-center gap-2 rounded-lg px-3 py-1"
+                  style={{ backgroundColor: '#1f1f1f', border: '1px solid #3c3c3c' }}
+                >
+                  <LinkIcon size={16} style={{ color: '#5f6368' }} />
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    autoFocus
+                    className="flex-1 bg-transparent text-sm py-2.5 outline-none"
+                    style={{ color: '#e8eaed' }}
+                  />
+                  {inputValue && (
+                    <button onClick={() => setInputValue('')} className="p-1" style={{ color: '#5f6368' }}>
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={handleAdd}
+                    disabled={!extractVideoId(inputValue.trim())}
+                    className="px-4 py-2 rounded-full text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: '#f9ab00', color: '#1f1f1f' }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#fbbc04' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f9ab00' }}
+                  >
+                    Add
+                  </button>
+                  <button
+                    onClick={() => { setShowInput(false); setInputValue('') }}
+                    className="px-4 py-2 rounded-full text-sm transition-colors"
+                    style={{ backgroundColor: 'transparent', color: '#9aa0a6', border: '1px solid #3c3c3c' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#353535' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowInput(true)}
+                className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-xl text-sm transition-colors"
+                style={{ backgroundColor: 'transparent', color: '#9aa0a6', border: '1px dashed #3c3c3c' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#f9ab00'; e.currentTarget.style.borderColor = '#f9ab00' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#9aa0a6'; e.currentTarget.style.borderColor = '#3c3c3c' }}
+              >
+                <Plus size={16} />
+                Add a video
+              </button>
+            )}
+          </motion.div>
         </div>
       </div>
-
-      {/* Videos List */}
-      <div className="space-y-6">
-        <AnimatePresence>
-          {videos.map((url, index) => {
-            const vid = extractVideoId(url)
-            if (!vid) return null
-            return (
-              <motion.div
-                key={`${vid}-${index}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ delay: index * 0.1, duration: 0.4 }}
-              >
-                {/* Video label + remove */}
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-text-secondary text-sm font-heading">
-                    Video {index + 1}
-                  </span>
-                  <button
-                    onClick={() => handleRemove(index)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 bg-red-500/10 transition-all duration-300 cursor-pointer"
-                    style={{ border: `1px solid rgba(${accentRgb}, 0.2)` }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = `0 0 12px rgba(${accentRgb}, 0.3)`
-                      e.currentTarget.style.borderColor = `rgba(${accentRgb}, 0.5)`
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow = 'none'
-                      e.currentTarget.style.borderColor = `rgba(${accentRgb}, 0.2)`
-                    }}
-                  >
-                    <Trash2 size={14} />
-                    Remove
-                  </button>
-                </div>
-
-                {/* Embedded player */}
-                <div
-                  className="w-full rounded-2xl overflow-hidden"
-                  style={{
-                    border: `1px solid rgba(${accentRgb}, 0.15)`,
-                    boxShadow: `0 0 30px rgba(${accentRgb}, 0.1), 0 0 60px rgba(${accentCyanRgb}, 0.05)`,
-                  }}
-                >
-                  <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
-                    <iframe
-                      src={`https://www.youtube.com/embed/${vid}`}
-                      title={`${chapter.name} - Video ${index + 1}`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        border: 'none',
-                      }}
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            )
-          })}
-        </AnimatePresence>
-      </div>
-
-      {/* Add Video Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-        className={`${videos.length > 0 ? 'mt-8' : ''}`}
-      >
-        {showInput ? (
-          <div
-            className="flex flex-col items-center py-10 rounded-2xl bg-bg-card/80 backdrop-blur-xl"
-            style={{ border: `1px solid rgba(${accentRgb}, 0.15)` }}
-          >
-            <Play size={36} className="text-text-muted mb-3" />
-            <p className="text-text-secondary text-base font-heading mb-5">
-              Paste a YouTube link
-            </p>
-
-            <div className="w-full max-w-md px-6">
-              <div
-                className="flex items-center gap-2 rounded-xl bg-white/5 p-1"
-                style={{ border: `1px solid rgba(${accentRgb}, 0.2)` }}
-              >
-                <div className="pl-3 text-text-muted">
-                  <LinkIcon size={18} />
-                </div>
-                <input
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  autoFocus
-                  className="flex-1 bg-transparent text-text-primary text-sm py-3 outline-none placeholder:text-text-muted/50"
-                />
-                {inputValue && (
-                  <button
-                    onClick={() => setInputValue('')}
-                    className="p-2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-                  >
-                    <X size={16} />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex gap-3 mt-4 justify-center">
-                <button
-                  onClick={handleAdd}
-                  disabled={!extractVideoId(inputValue.trim())}
-                  className="px-6 py-2.5 rounded-xl font-heading font-semibold text-sm text-white transition-all duration-300 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: '#f59e0b' }}
-                  onMouseEnter={(e) => {
-                    if (!e.currentTarget.disabled) e.currentTarget.style.boxShadow = '0 0 20px rgba(245, 158, 11, 0.4)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
-                >
-                  Add Video
-                </button>
-                <button
-                  onClick={() => { setShowInput(false); setInputValue('') }}
-                  className="px-6 py-2.5 rounded-xl font-heading font-semibold text-sm text-text-secondary bg-bg-card transition-all duration-300 cursor-pointer"
-                  style={{ border: `1px solid rgba(${accentRgb}, 0.15)` }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-
-            <p className="text-text-muted text-xs mt-5">
-              Supports youtube.com and youtu.be links
-            </p>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowInput(true)}
-            className="w-full flex items-center justify-center gap-2 py-5 rounded-2xl bg-bg-card/60 backdrop-blur-xl font-heading font-semibold text-text-secondary transition-all duration-300 cursor-pointer"
-            style={{ border: `1px dashed rgba(${accentRgb}, 0.2)` }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#f59e0b'
-              e.currentTarget.style.color = '#f59e0b'
-              e.currentTarget.style.boxShadow = '0 0 20px rgba(245, 158, 11, 0.15)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = `rgba(${accentRgb}, 0.2)`
-              e.currentTarget.style.color = ''
-              e.currentTarget.style.boxShadow = 'none'
-            }}
-          >
-            <Plus size={20} />
-            Add a Video
-          </button>
-        )}
-      </motion.div>
     </PageTransition>
   )
 }
