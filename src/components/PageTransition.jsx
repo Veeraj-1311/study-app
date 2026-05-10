@@ -6,9 +6,9 @@ export default function PageTransition({ children, className = '', style = {} })
   return (
     <motion.div
       data-page-scroll
-      initial={{ opacity: 0, scale: 0.985, filter: 'blur(8px)' }}
+      initial={{ opacity: 0, scale: 0.992, filter: 'blur(4px)' }}
       animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-      transition={{ duration: 0.7, ease: EASE, delay: 0.6 }}
+      transition={{ duration: 0.35, ease: EASE }}
       style={{
         position: 'fixed',
         top: 0,
