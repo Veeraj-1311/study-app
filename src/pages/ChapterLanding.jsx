@@ -1,12 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Brain, FileText, Play, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Brain, FileText, Play, ChevronRight, RotateCcw } from 'lucide-react'
 import quizData from '../data/quizData.js'
 import { playClick } from '../utils/sounds.js'
 import PageTransition from '../components/PageTransition'
 import { useTheme, useSubjectBackground } from '../contexts/ThemeContext.jsx'
 import QuestionCountSelector from '../components/QuestionCountSelector.jsx'
+import ChapterNotes from '../components/ChapterNotes.jsx'
+
+const getMistakeCount = (subjectId, chapterId) => {
+  try {
+    const m = JSON.parse(localStorage.getItem('learnflow-mistakes') || '{}')
+    return (m[subjectId]?.[chapterId] || []).length
+  } catch { return 0 }
+}
 
 function OptionRow({ to, onClick, icon: Icon, label, description, accentColor, index, children }) {
   const inner = (
@@ -67,6 +75,16 @@ export default function ChapterLanding() {
   const [questionCount, setQuestionCount] = useState(() => {
     try { return parseInt(localStorage.getItem('learnflow-quiz-count') || '10', 10) } catch { return 10 }
   })
+  const [mistakeCount, setMistakeCount] = useState(() => getMistakeCount(subjectId, chapterId))
+
+  useEffect(() => {
+    setMistakeCount(getMistakeCount(subjectId, chapterId))
+  }, [subjectId, chapterId])
+
+  const handleReviewMistakes = () => {
+    playClick()
+    navigate(`/quiz/${subjectId}/${chapterId}?review=mistakes`)
+  }
 
   const handleCountChange = (count) => {
     setQuestionCount(count)
@@ -175,7 +193,27 @@ export default function ChapterLanding() {
               accentColor="#f28b82"
               index={2}
             />
+
+            {mistakeCount > 0 && (
+              <OptionRow
+                onClick={handleReviewMistakes}
+                icon={RotateCcw}
+                label={`Review mistakes (${mistakeCount})`}
+                description="Re-quiz only on the questions you got wrong last time"
+                accentColor="#fdd663"
+                index={3}
+              />
+            )}
           </div>
+
+          <motion.section
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-8"
+          >
+            <ChapterNotes subjectId={subjectId} chapterId={chapterId} />
+          </motion.section>
         </div>
       </div>
     </PageTransition>

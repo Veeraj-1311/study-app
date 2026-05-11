@@ -20,6 +20,36 @@ const saveProgress = (subjectId, chapterId, score, total) => {
   localStorage.setItem('learnflow-progress', JSON.stringify(progress))
 }
 
+const MISTAKES_KEY = 'learnflow-mistakes'
+
+const loadMistakes = () => {
+  try { return JSON.parse(localStorage.getItem(MISTAKES_KEY) || '{}') } catch { return {} }
+}
+
+const saveMistakes = (subjectId, chapterId, allQuestions, wrongIds, fixedIds) => {
+  const all = loadMistakes()
+  const current = new Set((all[subjectId]?.[chapterId]) || [])
+  fixedIds.forEach((id) => current.delete(id))
+  wrongIds.forEach((id) => current.add(id))
+  const list = Array.from(current)
+  if (!all[subjectId]) all[subjectId] = {}
+  if (list.length === 0) {
+    delete all[subjectId][chapterId]
+    if (Object.keys(all[subjectId]).length === 0) delete all[subjectId]
+  } else {
+    all[subjectId][chapterId] = list
+  }
+  try { localStorage.setItem(MISTAKES_KEY, JSON.stringify(all)) } catch {}
+}
+
+const questionId = (q) => {
+  // stable-ish id from text — survives reorders
+  const text = (q?.question || '').slice(0, 80)
+  let hash = 0
+  for (let i = 0; i < text.length; i++) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0
+  return String(hash)
+}
+
 export default function Quiz() {
   const { subjectId, chapterId } = useParams()
   const navigate = useNavigate()
@@ -29,15 +59,27 @@ export default function Quiz() {
   const subject = quizData[subjectId]
   const chapter = subject?.chapters?.find((c) => c.id === Number(chapterId))
   const questionCount = parseInt(searchParams.get('count') || '10', 10)
+  const reviewMode = searchParams.get('review') === 'mistakes'
 
   const questions = useMemo(() => {
-    const arr = [...(chapter?.questions || [])]
+    const all = chapter?.questions || []
+    if (reviewMode) {
+      const wrongIds = new Set((loadMistakes()?.[subjectId]?.[chapterId]) || [])
+      const filtered = all.filter((q) => wrongIds.has(questionId(q)))
+      const arr = [...filtered]
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[arr[i], arr[j]] = [arr[j], arr[i]]
+      }
+      return arr
+    }
+    const arr = [...all]
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[arr[i], arr[j]] = [arr[j], arr[i]]
     }
     return arr.slice(0, questionCount)
-  }, [chapter, questionCount])
+  }, [chapter, questionCount, reviewMode, subjectId, chapterId])
 
   const total = questions.length
 
@@ -76,12 +118,34 @@ export default function Quiz() {
         setShowResult(false)
       } else {
         const computedScore = answers.filter((a) => a.isCorrect).length
-        saveProgress(subjectId, chapterId, computedScore, total)
-        navigate(`/results/${subjectId}/${chapterId}`, { state: { score: computedScore, total } })
+        // Update mistakes tracking: remove correctly-answered, add newly-wrong
+        const fixedIds = answers.filter((a) => a.isCorrect).map((a) => questionId(questions[a.questionIndex]))
+        const wrongIds = answers.filter((a) => !a.isCorrect).map((a) => questionId(questions[a.questionIndex]))
+        saveMistakes(subjectId, chapterId, chapter?.questions || [], wrongIds, fixedIds)
+        if (!reviewMode) saveProgress(subjectId, chapterId, computedScore, total)
+        navigate(`/results/${subjectId}/${chapterId}`, { state: { score: computedScore, total, review: reviewMode } })
       }
     }, 1500)
     return () => clearTimeout(t)
   }, [showResult, currentQuestion, total, score, selectedAnswer, question, subjectId, chapterId, navigate, answers])
+
+  useEffect(() => {
+    if (!question) return
+    const onKey = (e) => {
+      const tag = (e.target?.tagName || '').toLowerCase()
+      if (tag === 'input' || tag === 'textarea') return
+      const map = { '1': 0, '2': 1, '3': 2, '4': 3 }
+      if (e.key in map && !showResult) {
+        const idx = map[e.key]
+        if (idx < question.options.length) {
+          e.preventDefault()
+          handleAnswer(idx)
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [question, showResult, handleAnswer])
 
   if (!subject || !chapter) {
     return (

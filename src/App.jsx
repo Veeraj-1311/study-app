@@ -8,6 +8,7 @@ import Quiz from './pages/Quiz'
 import Results from './pages/Results'
 import Summary from './pages/Summary'
 import VideoPlayer from './pages/VideoPlayer'
+import Stats from './pages/Stats'
 
 function App() {
   const location = useLocation()
@@ -24,6 +25,7 @@ function App() {
           <Route path="/results/:subjectId/:chapterId" element={<Results />} />
           <Route path="/summary/:subjectId/:chapterId" element={<Summary />} />
           <Route path="/video/:subjectId/:chapterId" element={<VideoPlayer />} />
+        <Route path="/stats" element={<Stats />} />
         </Routes>
       </AnimatePresence>
     </>

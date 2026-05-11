@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit, ChevronRight, Sparkles } from 'lucide-react'
+import { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit, ChevronRight, Sparkles, BarChart3 } from 'lucide-react'
 import quizData from '../data/quizData.js'
 import { playClick } from '../utils/sounds.js'
 import PageTransition from '../components/PageTransition'
 import TaskList from '../components/TaskList'
 import ThemeSwitcher from '../components/ThemeSwitcher'
+import AskAI from '../components/AskAI'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 
 const iconMap = { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit }
@@ -189,6 +190,17 @@ export default function Home() {
             <p className="text-base mt-4 max-w-md" style={{ color: '#9aa0a6' }}>
               Pick a subject and keep the momentum going.
             </p>
+            <Link
+              to="/stats"
+              onClick={playClick}
+              className="inline-flex items-center gap-1.5 text-xs mt-4 px-3 py-1.5 rounded-full transition-colors"
+              style={{ color: '#9aa0a6', backgroundColor: 'transparent', border: '1px solid #3c3c3c' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-accent)'; e.currentTarget.style.borderColor = 'var(--color-accent)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#9aa0a6'; e.currentTarget.style.borderColor = '#3c3c3c' }}
+            >
+              <BarChart3 size={12} />
+              View progress
+            </Link>
           </motion.header>
 
           <div className="flex flex-col lg:flex-row lg:justify-between items-start gap-8 lg:gap-16 mb-12 w-full">
@@ -240,6 +252,7 @@ export default function Home() {
         </div>
 
         <ThemeSwitcher />
+        <AskAI />
       </div>
     </PageTransition>
   )
