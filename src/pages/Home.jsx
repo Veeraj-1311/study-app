@@ -139,9 +139,10 @@ export default function Home() {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(900px 500px at 12% -10%, rgba(249, 171, 0, 0.10), transparent 60%),' +
-              'radial-gradient(700px 400px at 100% 0%, rgba(138, 180, 248, 0.07), transparent 60%),' +
-              'radial-gradient(600px 400px at 50% 110%, rgba(197, 138, 249, 0.06), transparent 60%)',
+              'radial-gradient(800px 500px at 50% -10%, rgba(249, 171, 0, 0.10), transparent 60%),' +
+              'radial-gradient(700px 400px at 0% 50%, rgba(138, 180, 248, 0.06), transparent 60%),' +
+              'radial-gradient(700px 400px at 100% 50%, rgba(197, 138, 249, 0.06), transparent 60%),' +
+              'radial-gradient(600px 400px at 50% 110%, rgba(253, 214, 99, 0.05), transparent 60%)',
           }}
         />
         <motion.div
@@ -151,13 +152,14 @@ export default function Home() {
           animate={{ opacity: 1 }}
           transition={{ duration: 1.2, delay: 0.2 }}
           style={{
-            top: '20%', left: '60%', width: 380, height: 380,
-            background: 'radial-gradient(circle, rgba(249,171,0,0.06), transparent 70%)',
+            top: '20%', left: '50%', width: 420, height: 420,
+            transform: 'translateX(-50%)',
+            background: 'radial-gradient(circle, rgba(249,171,0,0.07), transparent 70%)',
             filter: 'blur(40px)',
           }}
         />
 
-        <div className="relative min-h-screen flex flex-col items-center justify-center max-w-5xl mx-auto px-6 py-16">
+        <div className="relative min-h-screen flex flex-col items-center justify-center w-full max-w-4xl mx-auto px-6 py-16 text-center">
           <motion.header
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
