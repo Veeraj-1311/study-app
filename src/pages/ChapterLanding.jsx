@@ -101,7 +101,7 @@ export default function ChapterLanding() {
           aria-hidden
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: `radial-gradient(700px 400px at 50% -10%, ${subjectColor}1a, transparent 60%), radial-gradient(500px 300px at 100% 100%, rgba(249,171,0,0.06), transparent 60%)`,
+            background: `radial-gradient(700px 400px at 50% -10%, ${subjectColor}1a, transparent 60%), radial-gradient(500px 300px at 100% 100%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.06), transparent 60%)`,
           }}
         />
 
