@@ -157,19 +157,19 @@ export default function Home() {
           }}
         />
 
-        <div className="relative max-w-5xl mx-auto px-6 py-12 sm:py-16">
+        <div className="relative min-h-screen flex flex-col items-center justify-center max-w-5xl mx-auto px-6 py-16">
           <motion.header
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="mb-12"
+            className="mb-12 flex flex-col items-center text-center"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}>
               <Sparkles size={12} style={{ color: '#f9ab00' }} />
               <span className="text-xs" style={{ color: '#9aa0a6' }}>{greeting}</span>
             </div>
             <h1
-              className="text-4xl sm:text-5xl font-medium tracking-tight leading-tight"
+              className="text-5xl sm:text-6xl font-medium tracking-tight leading-tight"
               style={{
                 letterSpacing: '-0.03em',
                 backgroundImage: 'linear-gradient(135deg, #e8eaed 0%, #f9ab00 70%, #fdd663 100%)',
@@ -180,12 +180,12 @@ export default function Home() {
             >
               LearnFlow
             </h1>
-            <p className="text-base mt-2 max-w-xl" style={{ color: '#9aa0a6' }}>
+            <p className="text-base mt-3 max-w-md" style={{ color: '#9aa0a6' }}>
               Pick a subject and keep the momentum going.
             </p>
           </motion.header>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12 w-full">
             {subjects.map(([subjectId, subject], index) => (
               <SubjectCard
                 key={subjectId}
@@ -201,7 +201,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6, duration: 0.6 }}
-            className="border-t pt-8 flex items-center gap-3"
+            className="pt-6 flex items-center justify-center gap-3 w-full max-w-xl border-t"
             style={{ borderColor: '#3c3c3c' }}
           >
             <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#f9ab00', boxShadow: '0 0 8px #f9ab00' }} />
@@ -212,7 +212,7 @@ export default function Home() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 4 }}
                 transition={{ duration: 0.4 }}
-                className="text-sm"
+                className="text-sm text-center"
                 style={{ color: '#9aa0a6', fontStyle: 'italic' }}
               >
                 {quotes[quoteIndex]}
