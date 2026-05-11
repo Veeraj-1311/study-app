@@ -113,12 +113,15 @@ export default function ThemeSwitcher() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.96 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="absolute bottom-14 left-0 p-2 rounded-xl"
+            className="absolute bottom-14 left-0 p-2 rounded-xl overflow-y-auto"
             style={{
               backgroundColor: '#242424',
               border: '1px solid #3c3c3c',
-              minWidth: 200,
-              boxShadow: '0 12px 32px -12px rgba(0,0,0,0.6)',
+              minWidth: 220,
+              maxHeight: 'min(70vh, 540px)',
+              boxShadow: '0 16px 40px -14px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.02)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
             }}
           >
             <p className="text-xs px-2 py-1 mb-1" style={{ color: '#9aa0a6' }}>Single color</p>

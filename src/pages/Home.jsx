@@ -51,18 +51,19 @@ function SubjectCard({ subjectId, subject, progress, index }) {
     >
       <Link to={`/subject/${subjectId}`} onClick={playClick} className="block group">
         <motion.div
-          whileHover={{ y: -3 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
+          whileHover={{ y: -4 }}
+          whileTap={{ scale: 0.985 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           className="relative rounded-2xl p-5 h-full overflow-hidden"
           style={{
             backgroundColor: '#2a2a2a',
             border: '1px solid #3c3c3c',
-            transition: 'border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease',
+            transition: 'border-color 0.28s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = color
-            e.currentTarget.style.backgroundColor = '#303030'
-            e.currentTarget.style.boxShadow = `0 8px 24px -12px ${color}66, 0 0 0 1px ${color}33 inset`
+            e.currentTarget.style.backgroundColor = '#2f2f2f'
+            e.currentTarget.style.boxShadow = `0 14px 38px -16px ${color}99, 0 4px 12px -6px rgba(0,0,0,0.4), 0 0 0 1px ${color}33 inset`
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.borderColor = '#3c3c3c'

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Check, Trash2 } from 'lucide-react'
+import { Plus, Check, Trash2, ClipboardList } from 'lucide-react'
 
 const STORAGE_KEY = 'learnflow-todos'
 const EXPIRY_MS = 48 * 60 * 60 * 1000
@@ -112,16 +112,19 @@ export default function TaskList() {
       <div className="space-y-1.5 min-h-[60px]">
         <AnimatePresence initial={false}>
           {sorted.length === 0 ? (
-            <motion.p
+            <motion.div
               key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="text-sm text-center py-4"
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="flex flex-col items-center justify-center py-6 gap-2"
               style={{ color: '#5f6368' }}
             >
-              No tasks yet.
-            </motion.p>
+              <ClipboardList size={22} strokeWidth={1.5} />
+              <p className="text-sm">No tasks yet</p>
+              <p className="text-xs" style={{ color: '#4a4a4e' }}>Add one above to get started.</p>
+            </motion.div>
           ) : sorted.map((todo) => (
             <motion.div
               key={todo.id}

@@ -81,19 +81,46 @@ export default function Results() {
           }}
         />
         {percent === 1 && (
-          <motion.div
-            aria-hidden
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: [0, 1, 0], scale: [0.8, 1.4, 1.6] }}
-            transition={{ duration: 1.6, ease: 'easeOut', repeat: Infinity, repeatDelay: 1 }}
-            className="absolute pointer-events-none"
-            style={{
-              top: '20%', left: '50%', transform: 'translateX(-50%)',
-              width: 280, height: 280, borderRadius: '50%',
-              background: `radial-gradient(circle, ${color}33, transparent 70%)`,
-              filter: 'blur(20px)',
-            }}
-          />
+          <>
+            <motion.div
+              aria-hidden
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: [0, 1, 0], scale: [0.8, 1.4, 1.6] }}
+              transition={{ duration: 1.6, ease: 'easeOut', repeat: Infinity, repeatDelay: 1 }}
+              className="absolute pointer-events-none"
+              style={{
+                top: '20%', left: '50%', transform: 'translateX(-50%)',
+                width: 280, height: 280, borderRadius: '50%',
+                background: `radial-gradient(circle, ${color}33, transparent 70%)`,
+                filter: 'blur(20px)',
+              }}
+            />
+            {[
+              { x: -120, y: -40, c: '#f9ab00', d: 0.1 },
+              { x: 110, y: -50, c: '#8ab4f8', d: 0.15 },
+              { x: -80, y: 100, c: '#c58af9', d: 0.2 },
+              { x: 130, y: 90, c: '#81c995', d: 0.25 },
+              { x: -150, y: 30, c: '#f28b82', d: 0.3 },
+              { x: 90, y: 130, c: '#fdd663', d: 0.35 },
+              { x: 0, y: -90, c: '#4fc3b8', d: 0.4 },
+              { x: 40, y: 60, c: '#e08aaf', d: 0.45 },
+            ].map((p, i) => (
+              <motion.div
+                key={i}
+                aria-hidden
+                initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
+                animate={{ opacity: [0, 1, 0], x: p.x, y: p.y, scale: [0, 1, 0.6] }}
+                transition={{ duration: 1.5, ease: 'easeOut', delay: p.d }}
+                className="absolute pointer-events-none rounded-full"
+                style={{
+                  top: '38%', left: '50%',
+                  width: 8, height: 8,
+                  backgroundColor: p.c,
+                  boxShadow: `0 0 12px ${p.c}`,
+                }}
+              />
+            ))}
+          </>
         )}
 
         <div className="relative w-full max-w-md">
