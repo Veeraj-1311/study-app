@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit, ChevronRight, Sparkles } from 'lucide-react'
+import { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit, ChevronRight, Sparkles, ListTodo } from 'lucide-react'
 import quizData from '../data/quizData.js'
 import { playClick } from '../utils/sounds.js'
 import PageTransition from '../components/PageTransition'
+import TodoPanel from '../components/TodoPanel'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 
 const iconMap = { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit }
@@ -115,10 +116,23 @@ function SubjectCard({ subjectId, subject, progress, index }) {
   )
 }
 
+const getPendingTodoCount = () => {
+  try {
+    const list = JSON.parse(localStorage.getItem('learnflow-todos') || '[]')
+    return list.filter((t) => !t.done).length
+  } catch { return 0 }
+}
+
 export default function Home() {
   const [quoteIndex, setQuoteIndex] = useState(0)
   const [greeting, setGreeting] = useState(() => greetingFor(new Date().getHours()))
+  const [todosOpen, setTodosOpen] = useState(false)
+  const [pendingTodos, setPendingTodos] = useState(getPendingTodoCount)
   const progress = getProgress()
+
+  useEffect(() => {
+    if (!todosOpen) setPendingTodos(getPendingTodoCount())
+  }, [todosOpen])
 
   useEffect(() => {
     const id = setInterval(() => setQuoteIndex((p) => (p + 1) % quotes.length), 8000)
@@ -222,6 +236,44 @@ export default function Home() {
             </AnimatePresence>
           </motion.div>
         </div>
+
+        <motion.button
+          onClick={() => { setTodosOpen(true); playClick() }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, duration: 0.3, ease: 'easeOut' }}
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.96 }}
+          className="fixed bottom-6 right-6 inline-flex items-center gap-2 pl-4 pr-5 py-3 rounded-full text-sm font-medium z-30"
+          style={{
+            backgroundColor: '#2a2a2a',
+            color: '#e8eaed',
+            border: '1px solid #3c3c3c',
+            boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.6)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#353535'
+            e.currentTarget.style.borderColor = '#f9ab00'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#2a2a2a'
+            e.currentTarget.style.borderColor = '#3c3c3c'
+          }}
+          aria-label="Open notes"
+        >
+          <ListTodo size={16} style={{ color: '#f9ab00' }} />
+          Notes
+          {pendingTodos > 0 && (
+            <span
+              className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold tabular-nums"
+              style={{ backgroundColor: '#f9ab00', color: '#1f1f1f' }}
+            >
+              {pendingTodos}
+            </span>
+          )}
+        </motion.button>
+
+        <TodoPanel open={todosOpen} onClose={() => setTodosOpen(false)} />
       </div>
     </PageTransition>
   )
