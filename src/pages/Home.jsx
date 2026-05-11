@@ -6,6 +6,7 @@ import quizData from '../data/quizData.js'
 import { playClick } from '../utils/sounds.js'
 import PageTransition from '../components/PageTransition'
 import TaskList from '../components/TaskList'
+import ThemeSwitcher from '../components/ThemeSwitcher'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 
 const iconMap = { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit }
@@ -140,10 +141,10 @@ export default function Home() {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(800px 500px at 50% -10%, rgba(249, 171, 0, 0.10), transparent 60%),' +
-              'radial-gradient(700px 400px at 0% 50%, rgba(138, 180, 248, 0.06), transparent 60%),' +
-              'radial-gradient(700px 400px at 100% 50%, rgba(197, 138, 249, 0.06), transparent 60%),' +
-              'radial-gradient(600px 400px at 50% 110%, rgba(253, 214, 99, 0.05), transparent 60%)',
+              'radial-gradient(800px 500px at 50% -10%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.12), transparent 60%),' +
+              'radial-gradient(700px 400px at 0% 50%, rgba(var(--color-accent-cyan-r), var(--color-accent-cyan-g), var(--color-accent-cyan-b), 0.07), transparent 60%),' +
+              'radial-gradient(700px 400px at 100% 50%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.06), transparent 60%),' +
+              'radial-gradient(600px 400px at 50% 110%, rgba(var(--color-accent-cyan-r), var(--color-accent-cyan-g), var(--color-accent-cyan-b), 0.05), transparent 60%)',
           }}
         />
         <motion.div
@@ -155,7 +156,7 @@ export default function Home() {
           style={{
             top: '20%', left: '50%', width: 420, height: 420,
             transform: 'translateX(-50%)',
-            background: 'radial-gradient(circle, rgba(249,171,0,0.07), transparent 70%)',
+            background: 'radial-gradient(circle, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.08), transparent 70%)',
             filter: 'blur(40px)',
           }}
         />
@@ -168,7 +169,7 @@ export default function Home() {
             className="mb-12 flex flex-col items-center text-center"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-6" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}>
-              <Sparkles size={12} style={{ color: '#f9ab00' }} />
+              <Sparkles size={12} style={{ color: 'var(--color-accent)' }} />
               <span className="text-xs" style={{ color: '#9aa0a6' }}>{greeting}</span>
             </div>
             <motion.img
@@ -181,7 +182,7 @@ export default function Home() {
                 height: '7rem',
                 width: 'auto',
                 objectFit: 'contain',
-                filter: 'drop-shadow(0 0 22px rgba(249, 171, 0, 0.35)) drop-shadow(0 0 50px rgba(249, 171, 0, 0.15))',
+                filter: 'drop-shadow(0 0 22px rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.4)) drop-shadow(0 0 50px rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.18))',
               }}
             />
             <p className="text-base mt-4 max-w-md" style={{ color: '#9aa0a6' }}>
@@ -189,8 +190,8 @@ export default function Home() {
             </p>
           </motion.header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-5 mb-12 w-full items-start">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col lg:flex-row lg:justify-between items-start gap-8 lg:gap-16 mb-12 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full lg:max-w-[600px]">
               {subjects.map(([subjectId, subject], index) => (
                 <SubjectCard
                   key={subjectId}
@@ -206,7 +207,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.45, duration: 0.4, ease: 'easeOut' }}
-              className="w-full rounded-2xl p-5"
+              className="w-full lg:w-[320px] lg:shrink-0 rounded-2xl p-5"
               style={{ backgroundColor: '#242424', border: '1px solid #3c3c3c' }}
             >
               <TaskList />
@@ -220,7 +221,7 @@ export default function Home() {
             className="pt-6 flex items-center justify-center gap-3 w-full max-w-xl border-t"
             style={{ borderColor: '#3c3c3c' }}
           >
-            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#f9ab00', boxShadow: '0 0 8px #f9ab00' }} />
+            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--color-accent)', boxShadow: '0 0 8px var(--color-accent)' }} />
             <AnimatePresence mode="wait">
               <motion.p
                 key={quoteIndex}
@@ -236,6 +237,8 @@ export default function Home() {
             </AnimatePresence>
           </motion.div>
         </div>
+
+        <ThemeSwitcher />
       </div>
     </PageTransition>
   )

@@ -3,8 +3,8 @@ const presets = {
   default: {
     name: 'NotebookLM',
     colors: {
-      accent: '#f9ab00',
-      accentCyan: '#fdd663',
+      accent: '#4f93e6',
+      accentCyan: '#8ab4f8',
       bgBody: '#1f1f1f',
       bgCard: '#2a2a2a',
       bgCardHover: '#353535',

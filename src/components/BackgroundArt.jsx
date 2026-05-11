@@ -17,10 +17,10 @@ export default function BackgroundArt() {
           position: 'absolute',
           inset: '-15%',
           background:
-            'radial-gradient(45% 40% at 18% 22%, rgba(249, 171, 0, 0.22), transparent 65%),' +
-            'radial-gradient(40% 40% at 84% 18%, rgba(138, 180, 248, 0.18), transparent 65%),' +
-            'radial-gradient(45% 40% at 78% 84%, rgba(197, 138, 249, 0.16), transparent 65%),' +
-            'radial-gradient(45% 40% at 22% 86%, rgba(129, 201, 149, 0.14), transparent 65%)',
+            'radial-gradient(45% 40% at 18% 22%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.24), transparent 65%),' +
+            'radial-gradient(40% 40% at 84% 18%, rgba(var(--color-accent-cyan-r), var(--color-accent-cyan-g), var(--color-accent-cyan-b), 0.18), transparent 65%),' +
+            'radial-gradient(45% 40% at 78% 84%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.16), transparent 65%),' +
+            'radial-gradient(45% 40% at 22% 86%, rgba(var(--color-accent-cyan-r), var(--color-accent-cyan-g), var(--color-accent-cyan-b), 0.14), transparent 65%)',
           animation: 'auroraDrift 28s ease-in-out infinite alternate',
           filter: 'blur(30px)',
           willChange: 'transform',
@@ -33,8 +33,8 @@ export default function BackgroundArt() {
           position: 'absolute',
           inset: '-15%',
           background:
-            'radial-gradient(35% 35% at 65% 35%, rgba(242, 139, 130, 0.12), transparent 65%),' +
-            'radial-gradient(35% 35% at 35% 65%, rgba(253, 214, 99, 0.10), transparent 65%)',
+            'radial-gradient(35% 35% at 65% 35%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.12), transparent 65%),' +
+            'radial-gradient(35% 35% at 35% 65%, rgba(var(--color-accent-cyan-r), var(--color-accent-cyan-g), var(--color-accent-cyan-b), 0.10), transparent 65%)',
           animation: 'auroraDriftSlow 42s ease-in-out infinite alternate-reverse',
           filter: 'blur(40px)',
           willChange: 'transform',

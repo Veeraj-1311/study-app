@@ -23,7 +23,7 @@ function getMessage(s, t) {
   const r = t > 0 ? s / t : 0
   if (r === 1) return { msg: 'Perfect score', icon: Trophy, color: '#fdd663' }
   if (r >= 0.8) return { msg: 'Great job', icon: Star, color: '#81c995' }
-  if (r >= 0.5) return { msg: 'Good effort', icon: TrendingUp, color: '#f9ab00' }
+  if (r >= 0.5) return { msg: 'Good effort', icon: TrendingUp, color: 'var(--color-accent)' }
   return { msg: 'Keep practicing', icon: Target, color: '#9aa0a6' }
 }
 
@@ -77,7 +77,7 @@ export default function Results() {
           aria-hidden
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: `radial-gradient(700px 400px at 50% 20%, ${color}1f, transparent 60%), radial-gradient(500px 300px at 50% 100%, rgba(249,171,0,0.08), transparent 60%)`,
+            background: `radial-gradient(700px 400px at 50% 20%, ${color}1f, transparent 60%), radial-gradient(500px 300px at 50% 100%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.10), transparent 60%)`,
           }}
         />
         {percent === 1 && (
@@ -108,8 +108,8 @@ export default function Results() {
               <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#3c3c3c" strokeWidth={strokeWidth} />
               <defs>
                 <linearGradient id="resultGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#f9ab00" />
-                  <stop offset="100%" stopColor="#fdd663" />
+                  <stop offset="0%" stopColor="var(--color-accent)" />
+                  <stop offset="100%" stopColor="var(--color-accent-cyan)" />
                 </linearGradient>
               </defs>
               <motion.circle
@@ -131,7 +131,7 @@ export default function Results() {
                 className="text-6xl font-medium tabular-nums"
                 style={{
                   letterSpacing: '-0.04em',
-                  backgroundImage: 'linear-gradient(135deg, #e8eaed 0%, #f9ab00 100%)',
+                  backgroundImage: 'linear-gradient(135deg, #e8eaed 0%, var(--color-accent) 100%)',
                   WebkitBackgroundClip: 'text',
                   backgroundClip: 'text',
                   color: 'transparent',
@@ -173,9 +173,9 @@ export default function Results() {
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.97 }}
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium transition-colors"
-                style={{ backgroundColor: '#f9ab00', color: '#1f1f1f', boxShadow: '0 6px 20px -8px rgba(249,171,0,0.6)' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fbbc04' }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f9ab00' }}
+                style={{ backgroundColor: 'var(--color-accent)', color: '#1f1f1f', boxShadow: '0 6px 20px -8px rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.55)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.08)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)' }}
               >
                 <RotateCcw size={16} />
                 Retry quiz

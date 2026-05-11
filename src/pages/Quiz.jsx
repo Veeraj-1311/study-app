@@ -88,7 +88,7 @@ export default function Quiz() {
       <PageTransition>
         <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ color: '#e8eaed' }}>
           <h2 className="text-2xl font-medium mb-3" style={{ letterSpacing: '-0.02em' }}>Quiz not found</h2>
-          <Link to="/" className="inline-flex items-center gap-2 text-sm" style={{ color: '#f9ab00' }}>
+          <Link to="/" className="inline-flex items-center gap-2 text-sm" style={{ color: 'var(--color-accent)' }}>
             <ArrowLeft size={16} />
             Back to Home
           </Link>
@@ -139,8 +139,8 @@ export default function Quiz() {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(700px 400px at 50% -10%, rgba(249, 171, 0, 0.10), transparent 60%),' +
-              'radial-gradient(500px 300px at 100% 110%, rgba(138, 180, 248, 0.06), transparent 60%)',
+              'radial-gradient(700px 400px at 50% -10%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.12), transparent 60%),' +
+              'radial-gradient(500px 300px at 100% 110%, rgba(var(--color-accent-cyan-r), var(--color-accent-cyan-g), var(--color-accent-cyan-b), 0.06), transparent 60%)',
           }}
         />
 
@@ -157,7 +157,7 @@ export default function Quiz() {
           <div className="w-full h-1.5 rounded-full overflow-hidden mb-10 relative" style={{ backgroundColor: '#3c3c3c' }}>
             <motion.div
               className="h-full"
-              style={{ background: 'linear-gradient(90deg, #f9ab00, #fdd663)' }}
+              style={{ background: 'linear-gradient(90deg, var(--color-accent), var(--color-accent-cyan))' }}
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.45, ease: 'easeOut' }}
@@ -196,7 +196,7 @@ export default function Quiz() {
                       onMouseEnter={(e) => {
                         if (!showResult) {
                           e.currentTarget.style.backgroundColor = '#303030'
-                          e.currentTarget.style.borderColor = '#f9ab0066'
+                          e.currentTarget.style.borderColor = 'rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.4)'
                         }
                       }}
                       onMouseLeave={(e) => {
@@ -234,7 +234,7 @@ export default function Quiz() {
                     transition={{ duration: 0.25 }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-5 px-4 py-3 rounded-xl" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c', borderLeft: '3px solid #f9ab00' }}>
+                    <div className="mt-5 px-4 py-3 rounded-xl" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c', borderLeft: '3px solid var(--color-accent)' }}>
                       <p className="text-sm leading-relaxed" style={{ color: '#9aa0a6' }}>
                         <span className="font-medium" style={{ color: '#e8eaed' }}>Why: </span>
                         {question.explanation}

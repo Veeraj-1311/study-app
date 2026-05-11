@@ -43,7 +43,7 @@ export default function ChapterSelect() {
       <PageTransition>
         <div className="min-h-screen w-full flex flex-col items-center justify-center px-6" style={{ color: '#e8eaed' }}>
           <h2 className="text-2xl font-medium mb-3" style={{ letterSpacing: '-0.02em' }}>Subject not found</h2>
-          <Link to="/" className="inline-flex items-center gap-2 text-sm" style={{ color: '#f9ab00' }}>
+          <Link to="/" className="inline-flex items-center gap-2 text-sm" style={{ color: 'var(--color-accent)' }}>
             <ArrowLeft size={16} />
             Back to Home
           </Link>

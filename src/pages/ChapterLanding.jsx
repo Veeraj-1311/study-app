@@ -83,7 +83,7 @@ export default function ChapterLanding() {
       <PageTransition>
         <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ color: '#e8eaed' }}>
           <h2 className="text-2xl font-medium mb-3" style={{ letterSpacing: '-0.02em' }}>Chapter not found</h2>
-          <Link to="/" className="inline-flex items-center gap-2 text-sm" style={{ color: '#f9ab00' }}>
+          <Link to="/" className="inline-flex items-center gap-2 text-sm" style={{ color: 'var(--color-accent)' }}>
             <ArrowLeft size={16} />
             Back to Home
           </Link>
@@ -148,7 +148,7 @@ export default function ChapterLanding() {
               icon={Brain}
               label="Quiz"
               description="Test your knowledge with multiple choice questions"
-              accentColor="#f9ab00"
+              accentColor="var(--color-accent)"
               index={0}
             >
               <QuestionCountSelector

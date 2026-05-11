@@ -84,7 +84,7 @@ export default function TaskList() {
       <div
         className="flex gap-1 items-center rounded-lg px-3 mb-3 transition-colors"
         style={{ backgroundColor: '#1a1a1a', border: '1px solid #3c3c3c' }}
-        onFocus={(e) => { e.currentTarget.style.borderColor = '#f9ab00' }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-accent)' }}
         onBlur={(e) => { e.currentTarget.style.borderColor = '#3c3c3c' }}
       >
         <input
@@ -101,7 +101,7 @@ export default function TaskList() {
           className="w-8 h-8 rounded-md flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed"
           style={{
             color: input.trim() ? '#1f1f1f' : '#5f6368',
-            backgroundColor: input.trim() ? '#f9ab00' : 'transparent',
+            backgroundColor: input.trim() ? 'var(--color-accent)' : 'transparent',
           }}
           aria-label="Add task"
         >
@@ -145,8 +145,8 @@ export default function TaskList() {
                 onClick={() => toggle(todo.id)}
                 className="mt-0.5 w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition-colors"
                 style={{
-                  backgroundColor: todo.done ? '#f9ab00' : 'transparent',
-                  border: `1.5px solid ${todo.done ? '#f9ab00' : '#5f6368'}`,
+                  backgroundColor: todo.done ? 'var(--color-accent)' : 'transparent',
+                  border: `1.5px solid ${todo.done ? 'var(--color-accent)' : '#5f6368'}`,
                   color: todo.done ? '#1f1f1f' : 'transparent',
                 }}
                 aria-label={todo.done ? 'Mark as not done' : 'Mark as done'}

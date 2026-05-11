@@ -24,9 +24,9 @@ export default function QuestionCountSelector({ value, onChange, maxAvailable = 
             disabled={isDisabled}
             className="px-3 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             style={{
-              backgroundColor: isActive ? '#f9ab00' : 'transparent',
+              backgroundColor: isActive ? 'var(--color-accent)' : 'transparent',
               color: isActive ? '#1f1f1f' : '#9aa0a6',
-              border: isActive ? '1px solid #f9ab00' : '1px solid #3c3c3c',
+              border: isActive ? '1px solid #4f93e6' : '1px solid #3c3c3c',
             }}
             onMouseEnter={(e) => {
               if (!isActive && !isDisabled) e.currentTarget.style.backgroundColor = '#353535'
