@@ -160,54 +160,58 @@ export default function Home() {
           }}
         />
 
-        <div className="relative min-h-screen flex flex-col items-center justify-center w-full max-w-4xl mx-auto px-6 py-16 text-center">
+        <div className="relative min-h-screen flex flex-col items-center justify-center w-full max-w-6xl mx-auto px-6 py-16">
           <motion.header
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
             className="mb-12 flex flex-col items-center text-center"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-6" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}>
               <Sparkles size={12} style={{ color: '#f9ab00' }} />
               <span className="text-xs" style={{ color: '#9aa0a6' }}>{greeting}</span>
             </div>
-            <h1
-              className="text-5xl sm:text-6xl font-medium tracking-tight leading-tight"
+            <motion.img
+              src="/logo.png"
+              alt="LearnFlow"
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
               style={{
-                letterSpacing: '-0.03em',
-                backgroundImage: 'linear-gradient(135deg, #e8eaed 0%, #f9ab00 70%, #fdd663 100%)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                color: 'transparent',
+                height: '7rem',
+                width: 'auto',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 0 22px rgba(249, 171, 0, 0.35)) drop-shadow(0 0 50px rgba(249, 171, 0, 0.15))',
               }}
-            >
-              LearnFlow
-            </h1>
-            <p className="text-base mt-3 max-w-md" style={{ color: '#9aa0a6' }}>
+            />
+            <p className="text-base mt-4 max-w-md" style={{ color: '#9aa0a6' }}>
               Pick a subject and keep the momentum going.
             </p>
           </motion.header>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12 w-full">
-            {subjects.map(([subjectId, subject], index) => (
-              <SubjectCard
-                key={subjectId}
-                subjectId={subjectId}
-                subject={subject}
-                progress={progress}
-                index={index}
-              />
-            ))}
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-5 mb-12 w-full items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {subjects.map(([subjectId, subject], index) => (
+                <SubjectCard
+                  key={subjectId}
+                  subjectId={subjectId}
+                  subject={subject}
+                  progress={progress}
+                  index={index}
+                />
+              ))}
+            </div>
 
-          <motion.section
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.4, ease: 'easeOut' }}
-            className="w-full max-w-2xl mb-12"
-          >
-            <TaskList />
-          </motion.section>
+            <motion.section
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45, duration: 0.4, ease: 'easeOut' }}
+              className="w-full rounded-2xl p-5"
+              style={{ backgroundColor: '#242424', border: '1px solid #3c3c3c' }}
+            >
+              <TaskList />
+            </motion.section>
+          </div>
 
           <motion.div
             initial={{ opacity: 0 }}
