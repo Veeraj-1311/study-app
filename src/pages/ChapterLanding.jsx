@@ -8,20 +8,28 @@ import PageTransition from '../components/PageTransition'
 import { useTheme, useSubjectBackground } from '../contexts/ThemeContext.jsx'
 import QuestionCountSelector from '../components/QuestionCountSelector.jsx'
 
-function OptionRow({ to, onClick, icon: Icon, label, description, index, children }) {
-  const content = (
+function OptionRow({ to, onClick, icon: Icon, label, description, accentColor, index, children }) {
+  const inner = (
     <div
-      className="flex items-start gap-4 px-5 py-5 rounded-xl transition-colors w-full text-left"
+      className="relative flex items-start gap-4 px-5 py-5 rounded-xl w-full text-left overflow-hidden transition-all"
       style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#353535' }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#2a2a2a' }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = '#303030'
+        e.currentTarget.style.borderColor = `${accentColor}66`
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = '#2a2a2a'
+        e.currentTarget.style.borderColor = '#3c3c3c'
+      }}
     >
-      <div
-        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-        style={{ backgroundColor: '#1f1f1f' }}
+      <motion.div
+        whileHover={{ rotate: -6, scale: 1.05 }}
+        transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+        className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+        style={{ backgroundColor: `${accentColor}1f`, boxShadow: `inset 0 0 0 1px ${accentColor}33` }}
       >
-        <Icon size={18} style={{ color: '#f9ab00' }} strokeWidth={2} />
-      </div>
+        <Icon size={20} style={{ color: accentColor }} strokeWidth={2} />
+      </motion.div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-medium" style={{ color: '#e8eaed' }}>{label}</h3>
@@ -35,14 +43,14 @@ function OptionRow({ to, onClick, icon: Icon, label, description, index, childre
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: index * 0.05, ease: 'easeOut' }}
+      transition={{ duration: 0.35, delay: 0.15 + index * 0.08, ease: [0.22, 1, 0.36, 1] }}
     >
       {to ? (
-        <Link to={to} className="block" onClick={playClick}>{content}</Link>
+        <Link to={to} className="block" onClick={playClick}>{inner}</Link>
       ) : (
-        <button type="button" className="block w-full" onClick={onClick}>{content}</button>
+        <button type="button" className="block w-full" onClick={onClick}>{inner}</button>
       )}
     </motion.div>
   )
@@ -88,8 +96,16 @@ export default function ChapterLanding() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen w-full" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
-        <div className="max-w-2xl mx-auto px-6 py-10 sm:py-14">
+      <div className="relative min-h-screen w-full overflow-hidden" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `radial-gradient(700px 400px at 50% -10%, ${subjectColor}1a, transparent 60%), radial-gradient(500px 300px at 100% 100%, rgba(249,171,0,0.06), transparent 60%)`,
+          }}
+        />
+
+        <div className="relative max-w-2xl mx-auto px-6 py-10 sm:py-14">
           <Link
             to={`/subject/${subjectId}`}
             onClick={playClick}
@@ -102,12 +118,29 @@ export default function ChapterLanding() {
             Back
           </Link>
 
-          <header className="mb-10">
-            <p className="text-sm mb-2" style={{ color: subjectColor }}>{subject.name}</p>
-            <h1 className="text-2xl sm:text-3xl font-medium" style={{ color: '#e8eaed', letterSpacing: '-0.02em' }}>
+          <motion.header
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="mb-10"
+          >
+            <p className="text-sm mb-2 inline-flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: subjectColor, boxShadow: `0 0 8px ${subjectColor}` }} />
+              <span style={{ color: subjectColor }}>{subject.name}</span>
+            </p>
+            <h1
+              className="text-3xl sm:text-4xl font-medium leading-tight"
+              style={{
+                letterSpacing: '-0.02em',
+                backgroundImage: `linear-gradient(135deg, #e8eaed 0%, ${subjectColor} 100%)`,
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+              }}
+            >
               {chapter.name}
             </h1>
-          </header>
+          </motion.header>
 
           <div className="space-y-2">
             <OptionRow
@@ -115,6 +148,7 @@ export default function ChapterLanding() {
               icon={Brain}
               label="Quiz"
               description="Test your knowledge with multiple choice questions"
+              accentColor="#f9ab00"
               index={0}
             >
               <QuestionCountSelector
@@ -129,6 +163,7 @@ export default function ChapterLanding() {
               icon={FileText}
               label="Summary"
               description="Review the key concepts of this chapter"
+              accentColor="#8ab4f8"
               index={1}
             />
 
@@ -137,6 +172,7 @@ export default function ChapterLanding() {
               icon={Play}
               label="Video"
               description="Watch a video explanation"
+              accentColor="#f28b82"
               index={2}
             />
           </div>

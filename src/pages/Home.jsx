@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit, Flame, ChevronRight } from 'lucide-react'
+import { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit, ChevronRight, Sparkles } from 'lucide-react'
 import quizData from '../data/quizData.js'
 import { playClick } from '../utils/sounds.js'
 import PageTransition from '../components/PageTransition'
 import { useTheme } from '../contexts/ThemeContext.jsx'
-import useStreak from '../hooks/useStreak.js'
 
 const iconMap = { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit }
 
@@ -19,47 +18,15 @@ const quotes = [
 ]
 
 const getProgress = () => {
-  try {
-    return JSON.parse(localStorage.getItem('learnflow-progress') || '{}')
-  } catch {
-    return {}
-  }
+  try { return JSON.parse(localStorage.getItem('learnflow-progress') || '{}') } catch { return {} }
 }
 
-function StreakChip() {
-  const { streak, todayMinutes, goalReached, progress } = useStreak()
-  const flameOn = streak > 0
-  return (
-    <div
-      className="inline-flex items-center gap-3 px-4 py-2 rounded-full"
-      style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}
-    >
-      <Flame
-        size={16}
-        style={{ color: flameOn ? '#f9ab00' : '#5f6368' }}
-        fill={flameOn ? '#f9ab00' : 'none'}
-      />
-      <span className="text-sm" style={{ color: '#e8eaed' }}>
-        {streak} day{streak !== 1 ? 's' : ''}
-      </span>
-      <span style={{ color: '#3c3c3c' }}>·</span>
-      <span className="text-sm" style={{ color: '#9aa0a6' }}>
-        {goalReached ? 'Goal reached' : `${todayMinutes}/30 min`}
-      </span>
-      <div
-        className="h-1 w-12 rounded-full overflow-hidden ml-1"
-        style={{ backgroundColor: '#3c3c3c' }}
-      >
-        <motion.div
-          className="h-full rounded-full"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress * 100}%` }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          style={{ backgroundColor: '#f9ab00' }}
-        />
-      </div>
-    </div>
-  )
+const greetingFor = (h) => {
+  if (h < 5) return 'Late night session'
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  if (h < 21) return 'Good evening'
+  return 'Burning the midnight oil'
 }
 
 function SubjectCard({ subjectId, subject, progress, index }) {
@@ -76,28 +43,51 @@ function SubjectCard({ subjectId, subject, progress, index }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.04, ease: 'easeOut' }}
+      transition={{ duration: 0.45, delay: 0.15 + index * 0.07, ease: [0.22, 1, 0.36, 1] }}
     >
       <Link to={`/subject/${subjectId}`} onClick={playClick} className="block group">
-        <div
-          className="rounded-2xl p-5 h-full transition-colors"
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="relative rounded-2xl p-5 h-full overflow-hidden"
           style={{
             backgroundColor: '#2a2a2a',
             border: '1px solid #3c3c3c',
+            transition: 'border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#353535' }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#2a2a2a' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = color
+            e.currentTarget.style.backgroundColor = '#303030'
+            e.currentTarget.style.boxShadow = `0 8px 24px -12px ${color}66, 0 0 0 1px ${color}33 inset`
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#3c3c3c'
+            e.currentTarget.style.backgroundColor = '#2a2a2a'
+            e.currentTarget.style.boxShadow = 'none'
+          }}
         >
-          <div className="flex items-center justify-between mb-5">
-            <div
+          <div
+            aria-hidden
+            className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+            style={{ background: `radial-gradient(circle, ${color}33, transparent 70%)` }}
+          />
+
+          <div className="flex items-center justify-between mb-5 relative">
+            <motion.div
+              whileHover={{ rotate: -6, scale: 1.05 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 18 }}
               className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${color}20` }}
+              style={{ backgroundColor: `${color}1f`, boxShadow: `inset 0 0 0 1px ${color}33` }}
             >
               {IconComponent && <IconComponent size={20} style={{ color }} strokeWidth={2} />}
-            </div>
-            <ChevronRight size={18} style={{ color: '#5f6368' }} />
+            </motion.div>
+            <ChevronRight
+              size={18}
+              className="transition-transform group-hover:translate-x-0.5"
+              style={{ color: '#5f6368' }}
+            />
           </div>
 
           <h3 className="text-base font-medium mb-1" style={{ color: '#e8eaed' }}>
@@ -108,21 +98,18 @@ function SubjectCard({ subjectId, subject, progress, index }) {
           </p>
 
           <div className="flex items-center gap-2">
-            <div
-              className="h-1 flex-1 rounded-full overflow-hidden"
-              style={{ backgroundColor: '#3c3c3c' }}
-            >
+            <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ backgroundColor: '#3c3c3c' }}>
               <motion.div
                 className="h-full rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.6, delay: 0.1 + index * 0.04, ease: 'easeOut' }}
-                style={{ backgroundColor: color }}
+                transition={{ duration: 0.9, delay: 0.4 + index * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                style={{ background: `linear-gradient(90deg, ${color}, ${color}cc)` }}
               />
             </div>
             <span className="text-xs tabular-nums" style={{ color: '#9aa0a6' }}>{pct}%</span>
           </div>
-        </div>
+        </motion.div>
       </Link>
     </motion.div>
   )
@@ -130,6 +117,7 @@ function SubjectCard({ subjectId, subject, progress, index }) {
 
 export default function Home() {
   const [quoteIndex, setQuoteIndex] = useState(0)
+  const [greeting, setGreeting] = useState(() => greetingFor(new Date().getHours()))
   const progress = getProgress()
 
   useEffect(() => {
@@ -137,29 +125,65 @@ export default function Home() {
     return () => clearInterval(id)
   }, [])
 
+  useEffect(() => {
+    setGreeting(greetingFor(new Date().getHours()))
+  }, [])
+
   const subjects = Object.entries(quizData)
 
   return (
     <PageTransition>
-      <div
-        className="min-h-screen w-full"
-        style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}
-      >
-        <div className="max-w-5xl mx-auto px-6 py-12 sm:py-16">
-          <header className="flex items-center justify-between mb-12">
-            <div>
-              <h1
-                className="text-3xl sm:text-4xl font-medium tracking-tight"
-                style={{ color: '#e8eaed', letterSpacing: '-0.02em' }}
-              >
-                LearnFlow
-              </h1>
-              <p className="text-sm mt-1" style={{ color: '#9aa0a6' }}>
-                Pick a subject to continue.
-              </p>
+      <div className="relative min-h-screen w-full overflow-hidden" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(900px 500px at 12% -10%, rgba(249, 171, 0, 0.10), transparent 60%),' +
+              'radial-gradient(700px 400px at 100% 0%, rgba(138, 180, 248, 0.07), transparent 60%),' +
+              'radial-gradient(600px 400px at 50% 110%, rgba(197, 138, 249, 0.06), transparent 60%)',
+          }}
+        />
+        <motion.div
+          aria-hidden
+          className="absolute pointer-events-none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.2, delay: 0.2 }}
+          style={{
+            top: '20%', left: '60%', width: 380, height: 380,
+            background: 'radial-gradient(circle, rgba(249,171,0,0.06), transparent 70%)',
+            filter: 'blur(40px)',
+          }}
+        />
+
+        <div className="relative max-w-5xl mx-auto px-6 py-12 sm:py-16">
+          <motion.header
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}>
+              <Sparkles size={12} style={{ color: '#f9ab00' }} />
+              <span className="text-xs" style={{ color: '#9aa0a6' }}>{greeting}</span>
             </div>
-            <StreakChip />
-          </header>
+            <h1
+              className="text-4xl sm:text-5xl font-medium tracking-tight leading-tight"
+              style={{
+                letterSpacing: '-0.03em',
+                backgroundImage: 'linear-gradient(135deg, #e8eaed 0%, #f9ab00 70%, #fdd663 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+              }}
+            >
+              LearnFlow
+            </h1>
+            <p className="text-base mt-2 max-w-xl" style={{ color: '#9aa0a6' }}>
+              Pick a subject and keep the momentum going.
+            </p>
+          </motion.header>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-16">
             {subjects.map(([subjectId, subject], index) => (
@@ -173,21 +197,28 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="border-t pt-8" style={{ borderColor: '#3c3c3c' }}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.6 }}
+            className="border-t pt-8 flex items-center gap-3"
+            style={{ borderColor: '#3c3c3c' }}
+          >
+            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#f9ab00', boxShadow: '0 0 8px #f9ab00' }} />
             <AnimatePresence mode="wait">
               <motion.p
                 key={quoteIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 4 }}
                 transition={{ duration: 0.4 }}
-                className="text-sm text-center"
-                style={{ color: '#5f6368', fontStyle: 'italic' }}
+                className="text-sm"
+                style={{ color: '#9aa0a6', fontStyle: 'italic' }}
               >
-                "{quotes[quoteIndex]}"
+                {quotes[quoteIndex]}
               </motion.p>
             </AnimatePresence>
-          </div>
+          </motion.div>
         </div>
       </div>
     </PageTransition>

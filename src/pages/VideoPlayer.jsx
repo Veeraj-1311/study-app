@@ -5,7 +5,7 @@ import { ArrowLeft, Link as LinkIcon, X, Play, Trash2, Plus } from 'lucide-react
 import quizData from '../data/quizData.js'
 import { playClick } from '../utils/sounds.js'
 import PageTransition from '../components/PageTransition'
-import { useSubjectBackground } from '../contexts/ThemeContext.jsx'
+import { useTheme } from '../contexts/ThemeContext.jsx'
 
 function extractVideoId(url) {
   if (!url) return null
@@ -39,7 +39,9 @@ export default function VideoPlayer() {
   const { subjectId, chapterId } = useParams()
   const subject = quizData[subjectId]
   const chapter = subject?.chapters?.find((c) => c.id === Number(chapterId))
-  useSubjectBackground(subjectId)
+  const { getSubjectColor } = useTheme()
+  const accent = '#f28b82'
+  const subjectColor = subject ? getSubjectColor(subjectId) : accent
 
   const [videos, setVideos] = useState(() => getSavedVideos(subjectId, chapterId))
   const [inputValue, setInputValue] = useState('')
@@ -81,8 +83,16 @@ export default function VideoPlayer() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen w-full" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
-        <div className="max-w-3xl mx-auto px-6 py-10 sm:py-14">
+      <div className="relative min-h-screen w-full overflow-hidden" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `radial-gradient(800px 400px at 70% -10%, ${accent}1a, transparent 60%), radial-gradient(500px 300px at 0% 100%, ${subjectColor}0d, transparent 60%)`,
+          }}
+        />
+
+        <div className="relative max-w-3xl mx-auto px-6 py-10 sm:py-14">
           <Link
             to={`/chapter/${subjectId}/${chapterId}`}
             onClick={playClick}
@@ -95,12 +105,34 @@ export default function VideoPlayer() {
             Back
           </Link>
 
-          <header className="mb-10">
-            <p className="text-sm mb-2" style={{ color: '#9aa0a6' }}>{subject.name} · Video</p>
-            <h1 className="text-2xl sm:text-3xl font-medium" style={{ color: '#e8eaed', letterSpacing: '-0.02em' }}>
-              {chapter.name}
-            </h1>
-          </header>
+          <motion.header
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="mb-10 flex items-start gap-4"
+          >
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: `${accent}1f`, boxShadow: `inset 0 0 0 1px ${accent}40` }}
+            >
+              <Play size={22} style={{ color: accent }} strokeWidth={2} />
+            </div>
+            <div>
+              <p className="text-sm mb-1" style={{ color: '#9aa0a6' }}>{subject.name} · Video</p>
+              <h1
+                className="text-2xl sm:text-3xl font-medium leading-tight"
+                style={{
+                  letterSpacing: '-0.02em',
+                  backgroundImage: `linear-gradient(135deg, #e8eaed 0%, ${accent} 100%)`,
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                {chapter.name}
+              </h1>
+            </div>
+          </motion.header>
 
           <div className="space-y-6">
             <AnimatePresence>
@@ -110,10 +142,10 @@ export default function VideoPlayer() {
                 return (
                   <motion.div
                     key={`${vid}-${index}`}
-                    initial={{ opacity: 0, y: 8 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.25, delay: index * 0.04 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm" style={{ color: '#9aa0a6' }}>
@@ -133,7 +165,7 @@ export default function VideoPlayer() {
 
                     <div
                       className="w-full rounded-xl overflow-hidden"
-                      style={{ border: '1px solid #3c3c3c', backgroundColor: '#000' }}
+                      style={{ border: '1px solid #3c3c3c', backgroundColor: '#000', boxShadow: `0 12px 32px -16px ${accent}55` }}
                     >
                       <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
                         <iframe
@@ -163,7 +195,7 @@ export default function VideoPlayer() {
                 style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <Play size={18} style={{ color: '#f9ab00' }} />
+                  <Play size={18} style={{ color: accent }} />
                   <p className="text-sm font-medium" style={{ color: '#e8eaed' }}>Paste a YouTube link</p>
                 </div>
 
@@ -190,16 +222,15 @@ export default function VideoPlayer() {
                 </div>
 
                 <div className="flex gap-2 mt-4">
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
                     onClick={handleAdd}
                     disabled={!extractVideoId(inputValue.trim())}
                     className="px-4 py-2 rounded-full text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: '#f9ab00', color: '#1f1f1f' }}
-                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#fbbc04' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f9ab00' }}
+                    style={{ backgroundColor: accent, color: '#1f1f1f' }}
                   >
                     Add
-                  </button>
+                  </motion.button>
                   <button
                     onClick={() => { setShowInput(false); setInputValue('') }}
                     className="px-4 py-2 rounded-full text-sm transition-colors"
@@ -212,16 +243,17 @@ export default function VideoPlayer() {
                 </div>
               </div>
             ) : (
-              <button
+              <motion.button
+                whileHover={{ y: -1 }}
                 onClick={() => setShowInput(true)}
                 className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-xl text-sm transition-colors"
                 style={{ backgroundColor: 'transparent', color: '#9aa0a6', border: '1px dashed #3c3c3c' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#f9ab00'; e.currentTarget.style.borderColor = '#f9ab00' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = accent; e.currentTarget.style.borderColor = accent }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#9aa0a6'; e.currentTarget.style.borderColor = '#3c3c3c' }}
               >
                 <Plus size={16} />
                 Add a video
-              </button>
+              </motion.button>
             )}
           </motion.div>
         </div>

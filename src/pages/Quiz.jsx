@@ -116,15 +116,15 @@ export default function Quiz() {
     if (!showResult) return base
     if (index === question.correct) {
       return {
-        backgroundColor: 'rgba(129, 201, 149, 0.12)',
-        border: '1px solid rgba(129, 201, 149, 0.5)',
+        backgroundColor: 'rgba(129, 201, 149, 0.14)',
+        border: '1px solid rgba(129, 201, 149, 0.55)',
         color: '#81c995',
       }
     }
     if (index === selectedAnswer && index !== question.correct) {
       return {
-        backgroundColor: 'rgba(242, 139, 130, 0.12)',
-        border: '1px solid rgba(242, 139, 130, 0.5)',
+        backgroundColor: 'rgba(242, 139, 130, 0.14)',
+        border: '1px solid rgba(242, 139, 130, 0.55)',
         color: '#f28b82',
       }
     }
@@ -133,8 +133,18 @@ export default function Quiz() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen w-full" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
-        <div className="max-w-2xl mx-auto px-6 py-10">
+      <div className="relative min-h-screen w-full overflow-hidden" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(700px 400px at 50% -10%, rgba(249, 171, 0, 0.10), transparent 60%),' +
+              'radial-gradient(500px 300px at 100% 110%, rgba(138, 180, 248, 0.06), transparent 60%)',
+          }}
+        />
+
+        <div className="relative max-w-2xl mx-auto px-6 py-10">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-base font-medium truncate pr-4" style={{ color: '#e8eaed' }}>
               {chapter.name}
@@ -144,23 +154,23 @@ export default function Quiz() {
             </span>
           </div>
 
-          <div className="w-full h-1 rounded-full overflow-hidden mb-10" style={{ backgroundColor: '#3c3c3c' }}>
+          <div className="w-full h-1.5 rounded-full overflow-hidden mb-10 relative" style={{ backgroundColor: '#3c3c3c' }}>
             <motion.div
               className="h-full"
-              style={{ backgroundColor: '#f9ab00' }}
+              style={{ background: 'linear-gradient(90deg, #f9ab00, #fdd663)' }}
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
             />
           </div>
 
           <AnimatePresence mode="wait">
             <motion.div
               key={currentQuestion}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1 className="text-xl sm:text-2xl font-medium mb-8 leading-snug" style={{ color: '#e8eaed', letterSpacing: '-0.01em' }}>
                 {question.question}
@@ -173,17 +183,27 @@ export default function Quiz() {
                   return (
                     <motion.button
                       key={index}
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.22, delay: index * 0.04, ease: 'easeOut' }}
                       onClick={() => handleAnswer(index)}
                       disabled={showResult}
-                      animate={isWrongSelected ? { x: [0, -6, 6, -6, 0] } : {}}
-                      transition={isWrongSelected ? { duration: 0.35 } : { duration: 0.2 }}
-                      className="w-full text-left rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors"
+                      whileHover={!showResult ? { scale: 1.01, x: 2 } : {}}
+                      whileTap={!showResult ? { scale: 0.99 } : {}}
+                      {...(isWrongSelected ? { animate: { x: [0, -6, 6, -6, 0], opacity: 1 }, transition: { duration: 0.35 } } : {})}
+                      className="w-full text-left rounded-xl px-4 py-3.5 flex items-center gap-3"
                       style={{ ...s, cursor: showResult ? 'default' : 'pointer' }}
                       onMouseEnter={(e) => {
-                        if (!showResult) e.currentTarget.style.backgroundColor = '#353535'
+                        if (!showResult) {
+                          e.currentTarget.style.backgroundColor = '#303030'
+                          e.currentTarget.style.borderColor = '#f9ab0066'
+                        }
                       }}
                       onMouseLeave={(e) => {
-                        if (!showResult) e.currentTarget.style.backgroundColor = '#2a2a2a'
+                        if (!showResult) {
+                          e.currentTarget.style.backgroundColor = '#2a2a2a'
+                          e.currentTarget.style.borderColor = '#3c3c3c'
+                        }
                       }}
                     >
                       <span
@@ -214,7 +234,7 @@ export default function Quiz() {
                     transition={{ duration: 0.25 }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-5 px-4 py-3 rounded-xl" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}>
+                    <div className="mt-5 px-4 py-3 rounded-xl" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c', borderLeft: '3px solid #f9ab00' }}>
                       <p className="text-sm leading-relaxed" style={{ color: '#9aa0a6' }}>
                         <span className="font-medium" style={{ color: '#e8eaed' }}>Why: </span>
                         {question.explanation}
