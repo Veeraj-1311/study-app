@@ -17,6 +17,7 @@ export default function PageTransition({ children, className = '', style = {} })
         height: '100%',
         overflowY: 'auto',
         overflowX: 'hidden',
+        zIndex: 1,
         ...style,
       }}
       className={className}

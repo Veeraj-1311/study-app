@@ -72,7 +72,7 @@ export default function Results() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-10 overflow-hidden" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+      <div className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-10 overflow-hidden" style={{ color: '#e8eaed' }}>
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"

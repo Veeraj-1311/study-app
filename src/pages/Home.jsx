@@ -133,7 +133,7 @@ export default function Home() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen w-full overflow-hidden" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+      <div className="relative min-h-screen w-full overflow-hidden" style={{ color: '#e8eaed' }}>
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"

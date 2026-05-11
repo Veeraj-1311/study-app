@@ -48,8 +48,9 @@ export function applyThemeToDOM(theme) {
     root.style.setProperty('--color-ai', subjectColors.ai)
   }
 
-  document.body.style.backgroundColor = colors.bgBody
-  document.body.style.backgroundImage = 'none'
+  // BackgroundArt component owns the body backdrop now; clear any prior overrides.
+  document.body.style.backgroundColor = ''
+  document.body.style.backgroundImage = ''
 }
 
 export function compressImage(file, maxKB = 500) {

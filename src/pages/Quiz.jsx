@@ -86,7 +86,7 @@ export default function Quiz() {
   if (!subject || !chapter) {
     return (
       <PageTransition>
-        <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+        <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ color: '#e8eaed' }}>
           <h2 className="text-2xl font-medium mb-3" style={{ letterSpacing: '-0.02em' }}>Quiz not found</h2>
           <Link to="/" className="inline-flex items-center gap-2 text-sm" style={{ color: '#f9ab00' }}>
             <ArrowLeft size={16} />
@@ -100,7 +100,7 @@ export default function Quiz() {
   if (!question) {
     return (
       <PageTransition>
-        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#1f1f1f', color: '#9aa0a6' }}>
+        <div className="min-h-screen flex items-center justify-center" style={{ color: '#9aa0a6' }}>
           <p>No questions available for this chapter.</p>
         </div>
       </PageTransition>
@@ -133,7 +133,7 @@ export default function Quiz() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen w-full overflow-hidden" style={{ backgroundColor: '#1f1f1f', color: '#e8eaed' }}>
+      <div className="relative min-h-screen w-full overflow-hidden" style={{ color: '#e8eaed' }}>
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
