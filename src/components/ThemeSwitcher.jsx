@@ -43,6 +43,16 @@ export const THEMES = [
   { id: 'rose',   label: 'Dusty rose',    accent: '#e08aaf', accentCyan: '#f4b7d3', rgb: [224, 138, 175], cyanRgb: [244, 183, 211] },
 ]
 
+export const COMBOS = [
+  { id: 'ocean',    label: 'Ocean',     accent: '#4f93e6', accentCyan: '#4fc3b8', rgb: [79, 147, 230],  cyanRgb: [79, 195, 184] },
+  { id: 'sunset',   label: 'Sunset',    accent: '#f9ab00', accentCyan: '#f28b82', rgb: [249, 171, 0],   cyanRgb: [242, 139, 130] },
+  { id: 'aurora',   label: 'Aurora',    accent: '#9d7ce8', accentCyan: '#4f93e6', rgb: [157, 124, 232], cyanRgb: [79, 147, 230] },
+  { id: 'forest',   label: 'Forest',    accent: '#6fa37d', accentCyan: '#4fc3b8', rgb: [111, 163, 125], cyanRgb: [79, 195, 184] },
+  { id: 'berry',    label: 'Berry',     accent: '#e08aaf', accentCyan: '#9d7ce8', rgb: [224, 138, 175], cyanRgb: [157, 124, 232] },
+  { id: 'citrus',   label: 'Citrus',    accent: '#f9ab00', accentCyan: '#81c995', rgb: [249, 171, 0],   cyanRgb: [129, 201, 149] },
+  { id: 'twilight', label: 'Twilight',  accent: '#4f93e6', accentCyan: '#e08aaf', rgb: [79, 147, 230],  cyanRgb: [224, 138, 175] },
+]
+
 const applyTheme = (t) => {
   const root = document.documentElement
   root.style.setProperty('--color-accent', t.accent)
@@ -55,6 +65,8 @@ const applyTheme = (t) => {
   root.style.setProperty('--color-accent-cyan-b', String(t.cyanRgb[2]))
 }
 
+const ALL_PRESETS = [...THEMES, ...COMBOS]
+
 const loadTheme = () => {
   try {
     const id = localStorage.getItem(STORAGE_KEY)
@@ -62,7 +74,7 @@ const loadTheme = () => {
       const customHex = localStorage.getItem(CUSTOM_KEY)
       if (customHex) return themeFromHex(customHex)
     }
-    return THEMES.find((t) => t.id === id) || THEMES[0]
+    return ALL_PRESETS.find((t) => t.id === id) || THEMES[0]
   } catch { return THEMES[0] }
 }
 
@@ -109,7 +121,7 @@ export default function ThemeSwitcher() {
               boxShadow: '0 12px 32px -12px rgba(0,0,0,0.6)',
             }}
           >
-            <p className="text-xs px-2 py-1 mb-1" style={{ color: '#9aa0a6' }}>Accent color</p>
+            <p className="text-xs px-2 py-1 mb-1" style={{ color: '#9aa0a6' }}>Single color</p>
             {THEMES.map((t) => (
               <button
                 key={t.id}
@@ -122,6 +134,28 @@ export default function ThemeSwitcher() {
                 <span
                   className="w-4 h-4 rounded-full shrink-0"
                   style={{ backgroundColor: t.accent, boxShadow: `0 0 0 1px ${t.accent}33, 0 0 8px ${t.accent}55` }}
+                />
+                <span className="flex-1">{t.label}</span>
+                {current.id === t.id && <Check size={14} style={{ color: t.accent }} />}
+              </button>
+            ))}
+
+            <p className="text-xs px-2 py-1 mt-2 mb-1" style={{ color: '#9aa0a6', borderTop: '1px solid #3c3c3c', paddingTop: '0.5rem' }}>Combinations</p>
+            {COMBOS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => { setCurrent(t); setOpen(false) }}
+                className="flex items-center gap-3 w-full px-2 py-1.5 rounded-md text-left text-sm transition-colors"
+                style={{ color: '#e8eaed', backgroundColor: 'transparent' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#2f2f2f' }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+              >
+                <span
+                  className="w-4 h-4 rounded-full shrink-0"
+                  style={{
+                    background: `linear-gradient(135deg, ${t.accent} 0%, ${t.accent} 50%, ${t.accentCyan} 50%, ${t.accentCyan} 100%)`,
+                    boxShadow: `0 0 0 1px ${t.accent}33, 0 0 10px ${t.accent}55`,
+                  }}
                 />
                 <span className="flex-1">{t.label}</span>
                 {current.id === t.id && <Check size={14} style={{ color: t.accent }} />}
