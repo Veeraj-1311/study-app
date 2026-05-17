@@ -13,17 +13,32 @@ const makeDefaultTheme = () => ({
   transition: 'soft',
 })
 
+function sanitizeTheme(input = {}) {
+  const defaultTheme = makeDefaultTheme()
+  const inputColors = input.colors || {}
+
+  return {
+    ...defaultTheme,
+    preset: input.preset || defaultTheme.preset,
+    colors: {
+      ...defaultTheme.colors,
+      accent: inputColors.accent || defaultTheme.colors.accent,
+      accentCyan: inputColors.accentCyan || defaultTheme.colors.accentCyan,
+    },
+    subjectColors: {
+      ...defaultTheme.subjectColors,
+      ...(input.subjectColors || {}),
+    },
+    transition: input.transition || defaultTheme.transition,
+  }
+}
+
 function loadTheme() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (!stored) return makeDefaultTheme()
     const parsed = JSON.parse(stored)
-    return {
-      ...makeDefaultTheme(),
-      ...parsed,
-      colors: { ...presets.default.colors, ...parsed.colors },
-      subjectColors: { ...presets.default.subjectColors, ...parsed.subjectColors },
-    }
+    return sanitizeTheme(parsed)
   } catch {
     return makeDefaultTheme()
   }
@@ -52,6 +67,7 @@ export function ThemeProvider({ children }) {
   }, [theme])
 
   const setThemeColor = useCallback((key, value) => {
+    if (key !== 'accent' && key !== 'accentCyan') return
     setThemeState((prev) => ({
       ...prev,
       preset: 'custom',
@@ -96,11 +112,7 @@ export function ThemeProvider({ children }) {
     if (!trimmed) return
     const snapshot = {
       name: trimmed,
-      theme: {
-        colors: { ...theme.colors },
-        subjectColors: { ...theme.subjectColors },
-        transition: theme.transition,
-      },
+      theme: sanitizeTheme(theme),
     }
     setSavedThemes((prev) => {
       const next = prev.some((item) => item.name === trimmed)
@@ -130,12 +142,7 @@ export function ThemeProvider({ children }) {
   const applySavedTheme = useCallback((name) => {
     const saved = savedThemes.find((item) => item.name === name)
     if (!saved) return
-    setThemeState({
-      preset: name,
-      colors: { ...presets.default.colors, ...saved.theme.colors },
-      subjectColors: { ...presets.default.subjectColors, ...saved.theme.subjectColors },
-      transition: saved.theme.transition || 'soft',
-    })
+    setThemeState({ ...sanitizeTheme(saved.theme), preset: name })
   }, [savedThemes])
 
   const value = useMemo(() => ({
