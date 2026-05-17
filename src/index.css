@@ -902,10 +902,12 @@ a {
   z-index: 51;
   left: 50%;
   top: 50%;
-  width: min(680px, calc(100vw - 28px));
-  height: min(760px, calc(100vh - 28px));
-  display: flex;
-  flex-direction: column;
+  width: min(680px, calc(100dvw - 28px));
+  height: min(760px, calc(100dvh - 28px));
+  max-height: calc(100dvh - 28px);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
   transform: translate(-50%, -50%);
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
@@ -925,12 +927,18 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
 .ai-title {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.ai-title-copy {
+  min-width: 0;
 }
 
 .ai-title h2 {
@@ -942,6 +950,16 @@ a {
   margin: 2px 0 0;
   color: var(--color-text-muted);
   font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .ai-context {
@@ -950,7 +968,7 @@ a {
 }
 
 .ai-messages {
-  flex: 1;
+  min-height: 0;
   overflow: auto;
   display: grid;
   align-content: start;
@@ -961,6 +979,7 @@ a {
 .ai-message {
   display: flex;
   gap: 10px;
+  min-width: 0;
 }
 
 .ai-avatar {
@@ -976,6 +995,7 @@ a {
 
 .ai-bubble {
   min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--color-text-primary);
   font-size: 0.92rem;
   line-height: 1.65;
@@ -988,6 +1008,25 @@ a {
 .ai-composer {
   border-top: 1px solid var(--color-border-subtle);
   border-bottom: 0;
+}
+
+.ai-composer-field {
+  align-items: flex-end;
+  padding-right: 4px;
+}
+
+.ai-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 150px;
+  padding: 12px;
+  border: 0;
+  outline: 0;
+  color: var(--color-text-primary);
+  background: transparent;
+  resize: none;
+  line-height: 1.45;
 }
 
 .typing-dots {
@@ -1093,6 +1132,37 @@ a {
 
   .theme-switcher { left: 14px; bottom: 14px; }
   .ai-fab { right: 14px; bottom: 14px; }
+
+  .ai-dialog {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    bottom: 10px;
+    width: auto;
+    height: auto;
+    max-height: none;
+    transform: none;
+  }
+
+  .ai-header {
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .ai-title p {
+    max-width: 190px;
+  }
+
+  .ai-header-actions .button span {
+    display: none;
+  }
+
+  .ai-context,
+  .ai-messages,
+  .ai-composer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

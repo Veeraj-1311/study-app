@@ -168,12 +168,12 @@ export default function AskAI({ defaultContext = '', inline = false }) {
                   <span className="ai-avatar">
                     <Bot size={16} />
                   </span>
-                  <div>
+                  <div className="ai-title-copy">
                     <h2>Ask AI</h2>
                     <p>Gemini-powered tutor, once the API key is added.</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="ai-header-actions">
                   {messages.length > 0 && (
                     <Button variant="ghost" size="sm" icon={Trash2} onClick={handleClear}>
                       New chat
@@ -244,10 +244,10 @@ export default function AskAI({ defaultContext = '', inline = false }) {
               </div>
 
               <div className="ai-composer">
-                <div className="field-shell" style={{ alignItems: 'flex-end', paddingRight: 4 }}>
+                <div className="field-shell ai-composer-field">
                   <textarea
                     ref={inputRef}
-                    className="text-area"
+                    className="ai-input"
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     onKeyDown={(event) => {
@@ -258,7 +258,6 @@ export default function AskAI({ defaultContext = '', inline = false }) {
                     }}
                     placeholder="Type your doubt..."
                     rows={1}
-                    style={{ minHeight: 44, maxHeight: 150, resize: 'none' }}
                   />
                   <IconButton label="Send message" icon={Send} disabled={!input.trim() || loading} onClick={handleSend} />
                 </div>
