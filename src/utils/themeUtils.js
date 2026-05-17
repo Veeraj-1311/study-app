@@ -26,6 +26,7 @@ export function applyThemeToDOM(theme) {
   root.style.setProperty('--color-text-primary', colors.textPrimary)
   root.style.setProperty('--color-text-secondary', colors.textSecondary)
   root.style.setProperty('--color-text-muted', colors.textMuted)
+  root.style.setProperty('--color-border-subtle', colors.borderSubtle || '#e4ddd0')
 
   const accentRgb = hexToRgb(colors.accent)
   root.style.setProperty('--color-accent-r', accentRgb.r)
@@ -37,8 +38,6 @@ export function applyThemeToDOM(theme) {
   root.style.setProperty('--color-accent-cyan-g', cyanRgb.g)
   root.style.setProperty('--color-accent-cyan-b', cyanRgb.b)
 
-  root.style.setProperty('--color-border-subtle', '#3c3c3c')
-
   if (subjectColors) {
     root.style.setProperty('--color-math', subjectColors.math)
     root.style.setProperty('--color-science', subjectColors.science)
@@ -48,7 +47,6 @@ export function applyThemeToDOM(theme) {
     root.style.setProperty('--color-ai', subjectColors.ai)
   }
 
-  // BackgroundArt component owns the body backdrop now; clear any prior overrides.
   document.body.style.backgroundColor = ''
   document.body.style.backgroundImage = ''
 }

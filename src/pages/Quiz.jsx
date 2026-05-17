@@ -1,53 +1,29 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, XCircle, ArrowLeft } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, CheckCircle2, RotateCcw, XCircle } from 'lucide-react'
 import quizData from '../data/quizData.js'
-import { playCorrect, playWrong } from '../utils/sounds.js'
 import PageTransition from '../components/PageTransition'
-import { useSubjectBackground } from '../contexts/ThemeContext.jsx'
+import { AppNav, Button, Card, EmptyState, PageHeader, PageShell, ProgressBar } from '../components/ui.jsx'
+import { loadMistakes, questionId, saveMistakes, saveProgress } from '../utils/progress.js'
+import { playCorrect, playWrong } from '../utils/sounds.js'
+import { useSubjectBackground } from '../hooks/useTheme.js'
 
-const saveProgress = (subjectId, chapterId, score, total) => {
-  let progress = {}
-  try { progress = JSON.parse(localStorage.getItem('learnflow-progress') || '{}') } catch { progress = {} }
-  if (!progress[subjectId]) progress[subjectId] = {}
-  const existing = progress[subjectId][chapterId]
-  progress[subjectId][chapterId] = {
-    bestScore: Math.max(score, existing?.bestScore || 0),
-    bestTotal: total,
-    status: score === total ? 'completed' : 'in_progress',
+function shuffle(items) {
+  const copy = [...items]
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
   }
-  localStorage.setItem('learnflow-progress', JSON.stringify(progress))
+  return copy
 }
 
-const MISTAKES_KEY = 'learnflow-mistakes'
-
-const loadMistakes = () => {
-  try { return JSON.parse(localStorage.getItem(MISTAKES_KEY) || '{}') } catch { return {} }
-}
-
-const saveMistakes = (subjectId, chapterId, allQuestions, wrongIds, fixedIds) => {
-  const all = loadMistakes()
-  const current = new Set((all[subjectId]?.[chapterId]) || [])
-  fixedIds.forEach((id) => current.delete(id))
-  wrongIds.forEach((id) => current.add(id))
-  const list = Array.from(current)
-  if (!all[subjectId]) all[subjectId] = {}
-  if (list.length === 0) {
-    delete all[subjectId][chapterId]
-    if (Object.keys(all[subjectId]).length === 0) delete all[subjectId]
-  } else {
-    all[subjectId][chapterId] = list
+function createQuestionSet({ chapter, reviewMode, subjectId, chapterId, questionCount }) {
+  const all = chapter?.questions || []
+  if (reviewMode) {
+    const wrongIds = new Set(loadMistakes()[subjectId]?.[chapterId] || [])
+    return shuffle(all.filter((question) => wrongIds.has(questionId(question))))
   }
-  try { localStorage.setItem(MISTAKES_KEY, JSON.stringify(all)) } catch {}
-}
-
-const questionId = (q) => {
-  // stable-ish id from text — survives reorders
-  const text = (q?.question || '').slice(0, 80)
-  let hash = 0
-  for (let i = 0; i < text.length; i++) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0
-  return String(hash)
+  return shuffle(all).slice(0, questionCount)
 }
 
 export default function Quiz() {
@@ -57,106 +33,92 @@ export default function Quiz() {
   useSubjectBackground(subjectId)
 
   const subject = quizData[subjectId]
-  const chapter = subject?.chapters?.find((c) => c.id === Number(chapterId))
+  const chapter = subject?.chapters?.find((item) => item.id === Number(chapterId))
   const questionCount = parseInt(searchParams.get('count') || '10', 10)
   const reviewMode = searchParams.get('review') === 'mistakes'
-
-  const questions = useMemo(() => {
-    const all = chapter?.questions || []
-    if (reviewMode) {
-      const wrongIds = new Set((loadMistakes()?.[subjectId]?.[chapterId]) || [])
-      const filtered = all.filter((q) => wrongIds.has(questionId(q)))
-      const arr = [...filtered]
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-        ;[arr[i], arr[j]] = [arr[j], arr[i]]
-      }
-      return arr
-    }
-    const arr = [...all]
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[arr[i], arr[j]] = [arr[j], arr[i]]
-    }
-    return arr.slice(0, questionCount)
-  }, [chapter, questionCount, reviewMode, subjectId, chapterId])
-
-  const total = questions.length
-
+  const [questions] = useState(() => createQuestionSet({ chapter, reviewMode, subjectId, chapterId, questionCount }))
   const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [score, setScore] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState(null)
-  const [showResult, setShowResult] = useState(false)
   const [answers, setAnswers] = useState([])
 
+  const total = questions.length
   const question = questions[currentQuestion]
-  const progressPercent = total > 0 ? ((currentQuestion + (showResult ? 1 : 0)) / total) * 100 : 0
+  const hasAnswered = selectedAnswer !== null
+  const progressPercent = total ? ((currentQuestion + (hasAnswered ? 1 : 0)) / total) * 100 : 0
 
-  const handleAnswer = useCallback(
-    (optionIndex) => {
-      if (selectedAnswer !== null) return
-      setSelectedAnswer(optionIndex)
-      setShowResult(true)
-      const isCorrect = optionIndex === question.correct
-      if (isCorrect) {
-        setScore((p) => p + 1)
-        playCorrect()
-      } else {
-        playWrong()
-      }
-      setAnswers((prev) => [...prev, { questionIndex: currentQuestion, selected: optionIndex, correct: question.correct, isCorrect }])
-    },
-    [selectedAnswer, question, currentQuestion]
-  )
+  const handleAnswer = useCallback((optionIndex) => {
+    if (!question || selectedAnswer !== null) return
+    const isCorrect = optionIndex === question.correct
+    setSelectedAnswer(optionIndex)
+    setAnswers((prev) => [
+      ...prev,
+      {
+        questionIndex: currentQuestion,
+        selected: optionIndex,
+        correct: question.correct,
+        isCorrect,
+      },
+    ])
+    if (isCorrect) playCorrect()
+    else playWrong()
+  }, [currentQuestion, question, selectedAnswer])
+
+  const finishQuiz = useCallback(() => {
+    const computedScore = answers.filter((answer) => answer.isCorrect).length
+    const fixedIds = answers
+      .filter((answer) => answer.isCorrect)
+      .map((answer) => questionId(questions[answer.questionIndex]))
+    const wrongIds = answers
+      .filter((answer) => !answer.isCorrect)
+      .map((answer) => questionId(questions[answer.questionIndex]))
+
+    saveMistakes(subjectId, chapterId, wrongIds, fixedIds)
+    if (!reviewMode) saveProgress(subjectId, chapterId, computedScore, total)
+    navigate(`/results/${subjectId}/${chapterId}`, {
+      state: { score: computedScore, total, review: reviewMode },
+    })
+  }, [answers, chapterId, navigate, questions, reviewMode, subjectId, total])
+
+  const handleNext = useCallback(() => {
+    if (!hasAnswered) return
+    if (currentQuestion < total - 1) {
+      setCurrentQuestion((prev) => prev + 1)
+      setSelectedAnswer(null)
+      return
+    }
+    finishQuiz()
+  }, [currentQuestion, finishQuiz, hasAnswered, total])
 
   useEffect(() => {
-    if (!showResult) return
-    const t = setTimeout(() => {
-      if (currentQuestion < total - 1) {
-        setCurrentQuestion((p) => p + 1)
-        setSelectedAnswer(null)
-        setShowResult(false)
-      } else {
-        const computedScore = answers.filter((a) => a.isCorrect).length
-        // Update mistakes tracking: remove correctly-answered, add newly-wrong
-        const fixedIds = answers.filter((a) => a.isCorrect).map((a) => questionId(questions[a.questionIndex]))
-        const wrongIds = answers.filter((a) => !a.isCorrect).map((a) => questionId(questions[a.questionIndex]))
-        saveMistakes(subjectId, chapterId, chapter?.questions || [], wrongIds, fixedIds)
-        if (!reviewMode) saveProgress(subjectId, chapterId, computedScore, total)
-        navigate(`/results/${subjectId}/${chapterId}`, { state: { score: computedScore, total, review: reviewMode } })
-      }
-    }, 1500)
-    return () => clearTimeout(t)
-  }, [showResult, currentQuestion, total, score, selectedAnswer, question, subjectId, chapterId, navigate, answers])
-
-  useEffect(() => {
-    if (!question) return
-    const onKey = (e) => {
-      const tag = (e.target?.tagName || '').toLowerCase()
+    const onKey = (event) => {
+      const tag = (event.target?.tagName || '').toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
-      const map = { '1': 0, '2': 1, '3': 2, '4': 3 }
-      if (e.key in map && !showResult) {
-        const idx = map[e.key]
-        if (idx < question.options.length) {
-          e.preventDefault()
-          handleAnswer(idx)
-        }
+      const keyMap = { 1: 0, 2: 1, 3: 2, 4: 3 }
+      if (!hasAnswered && event.key in keyMap && question?.options[keyMap[event.key]]) {
+        event.preventDefault()
+        handleAnswer(keyMap[event.key])
+      }
+      if (hasAnswered && event.key === 'Enter') {
+        event.preventDefault()
+        handleNext()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [question, showResult, handleAnswer])
+  }, [handleAnswer, handleNext, hasAnswered, question])
 
   if (!subject || !chapter) {
     return (
       <PageTransition>
-        <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ color: '#e8eaed' }}>
-          <h2 className="text-2xl font-medium mb-3" style={{ letterSpacing: '-0.02em' }}>Quiz not found</h2>
-          <Link to="/" className="inline-flex items-center gap-2 text-sm" style={{ color: 'var(--color-accent)' }}>
-            <ArrowLeft size={16} />
-            Back to Home
-          </Link>
-        </div>
+        <PageShell size="narrow">
+          <AppNav backTo="/" />
+          <EmptyState
+            icon={ArrowLeft}
+            title="Quiz not found"
+            description="This quiz route does not match an available chapter."
+            action={<Button to="/" icon={ArrowLeft}>Back home</Button>}
+          />
+        </PageShell>
       </PageTransition>
     )
   }
@@ -164,153 +126,89 @@ export default function Quiz() {
   if (!question) {
     return (
       <PageTransition>
-        <div className="min-h-screen flex items-center justify-center" style={{ color: '#9aa0a6' }}>
-          <p>No questions available for this chapter.</p>
-        </div>
+        <PageShell size="narrow">
+          <AppNav backTo={`/chapter/${subjectId}/${chapterId}`} />
+          <EmptyState
+            icon={reviewMode ? RotateCcw : CheckCircle2}
+            title={reviewMode ? 'No mistakes to review' : 'No questions yet'}
+            description={reviewMode ? 'This chapter has no saved mistakes right now.' : 'Questions have not been added for this chapter.'}
+            action={<Button to={`/chapter/${subjectId}/${chapterId}`}>Back to chapter</Button>}
+          />
+        </PageShell>
       </PageTransition>
     )
   }
 
-  const optionStyle = (index) => {
-    const base = {
-      backgroundColor: '#2a2a2a',
-      border: '1px solid #3c3c3c',
-      color: '#e8eaed',
-    }
-    if (!showResult) return base
-    if (index === question.correct) {
-      return {
-        backgroundColor: 'rgba(129, 201, 149, 0.14)',
-        border: '1px solid rgba(129, 201, 149, 0.55)',
-        color: '#81c995',
-      }
-    }
-    if (index === selectedAnswer && index !== question.correct) {
-      return {
-        backgroundColor: 'rgba(242, 139, 130, 0.14)',
-        border: '1px solid rgba(242, 139, 130, 0.55)',
-        color: '#f28b82',
-      }
-    }
-    return { backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c', color: '#5f6368' }
+  const optionState = (index) => {
+    if (!hasAnswered) return 'idle'
+    if (index === question.correct) return 'correct'
+    if (index === selectedAnswer) return 'wrong'
+    return 'muted'
   }
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen w-full overflow-hidden" style={{ color: '#e8eaed' }}>
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(700px 400px at 50% -10%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.12), transparent 60%),' +
-              'radial-gradient(500px 300px at 100% 110%, rgba(var(--color-accent-cyan-r), var(--color-accent-cyan-g), var(--color-accent-cyan-b), 0.06), transparent 60%)',
-          }}
+      <PageShell size="focus">
+        <AppNav backTo={`/chapter/${subjectId}/${chapterId}`} />
+        <PageHeader
+          eyebrow={reviewMode ? 'Mistake review' : subject.name}
+          title={chapter.name}
+          description={reviewMode ? 'Review only the questions that need another pass.' : 'Answer, read the explanation, then continue when ready.'}
         />
 
-        <div className="relative max-w-2xl mx-auto px-6 py-10">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-base font-medium truncate pr-4" style={{ color: '#e8eaed' }}>
-              {chapter.name}
-            </h2>
-            <span className="text-sm tabular-nums whitespace-nowrap" style={{ color: '#9aa0a6' }}>
-              {currentQuestion + 1} / {total}
-            </span>
+        <Card className="quiz-card">
+          <div className="quiz-topline">
+            <span>Question {currentQuestion + 1} of {total}</span>
+            <span>{answers.filter((answer) => answer.isCorrect).length} correct</span>
           </div>
+          <ProgressBar value={progressPercent} />
 
-          <div className="w-full h-1.5 rounded-full overflow-hidden mb-10 relative" style={{ backgroundColor: '#3c3c3c' }}>
-            <motion.div
-              className="h-full"
-              style={{ background: 'linear-gradient(90deg, var(--color-accent), var(--color-accent-cyan))' }}
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.45, ease: 'easeOut' }}
-            />
-          </div>
+          <div key={currentQuestion}>
+            <h1 className="quiz-question">{question.question}</h1>
+            <div className="answer-list">
+              {question.options.map((option, index) => (
+                <button
+                  key={option}
+                  type="button"
+                  className="answer-option"
+                  data-state={optionState(index)}
+                  disabled={hasAnswered}
+                  onClick={() => handleAnswer(index)}
+                >
+                  <span className="answer-key">{String.fromCharCode(65 + index)}</span>
+                  <span className="answer-copy">{option}</span>
+                  {hasAnswered && index === question.correct && <CheckCircle2 size={19} style={{ color: '#16a34a' }} />}
+                  {hasAnswered && index === selectedAnswer && index !== question.correct && <XCircle size={19} style={{ color: '#dc2626' }} />}
+                </button>
+              ))}
+            </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentQuestion}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <h1 className="text-xl sm:text-2xl font-medium mb-8 leading-snug" style={{ color: '#e8eaed', letterSpacing: '-0.01em' }}>
-                {question.question}
-              </h1>
-
-              <div className="space-y-2">
-                {question.options.map((option, index) => {
-                  const s = optionStyle(index)
-                  const isWrongSelected = showResult && index === selectedAnswer && index !== question.correct
-                  return (
-                    <motion.button
-                      key={index}
-                      initial={{ opacity: 0, x: -6 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.22, delay: index * 0.04, ease: 'easeOut' }}
-                      onClick={() => handleAnswer(index)}
-                      disabled={showResult}
-                      whileHover={!showResult ? { scale: 1.01, x: 2 } : {}}
-                      whileTap={!showResult ? { scale: 0.99 } : {}}
-                      {...(isWrongSelected ? { animate: { x: [0, -6, 6, -6, 0], opacity: 1 }, transition: { duration: 0.35 } } : {})}
-                      className="w-full text-left rounded-xl px-4 py-3.5 flex items-center gap-3"
-                      style={{ ...s, cursor: showResult ? 'default' : 'pointer' }}
-                      onMouseEnter={(e) => {
-                        if (!showResult) {
-                          e.currentTarget.style.backgroundColor = '#303030'
-                          e.currentTarget.style.borderColor = 'rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.4)'
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!showResult) {
-                          e.currentTarget.style.backgroundColor = '#2a2a2a'
-                          e.currentTarget.style.borderColor = '#3c3c3c'
-                        }
-                      }}
-                    >
-                      <span
-                        className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium shrink-0"
-                        style={{
-                          backgroundColor: '#1f1f1f',
-                          color: showResult && index === question.correct ? '#81c995'
-                            : showResult && index === selectedAnswer ? '#f28b82'
-                            : '#9aa0a6',
-                        }}
-                      >
-                        {String.fromCharCode(65 + index)}
-                      </span>
-                      <span className="flex-1 text-sm">{option}</span>
-                      {showResult && index === question.correct && <CheckCircle2 size={18} className="shrink-0" style={{ color: '#81c995' }} />}
-                      {showResult && index === selectedAnswer && index !== question.correct && <XCircle size={18} className="shrink-0" style={{ color: '#f28b82' }} />}
-                    </motion.button>
-                  )
-                })}
+            {hasAnswered && question.explanation && (
+              <div className="explanation">
+                <strong>Why: </strong>{question.explanation}
               </div>
+            )}
 
-              <AnimatePresence>
-                {showResult && question.explanation && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="mt-5 px-4 py-3 rounded-xl" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c', borderLeft: '3px solid var(--color-accent)' }}>
-                      <p className="text-sm leading-relaxed" style={{ color: '#9aa0a6' }}>
-                        <span className="font-medium" style={{ color: '#e8eaed' }}>Why: </span>
-                        {question.explanation}
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          </AnimatePresence>
+            <div className="quiz-footer">
+              {hasAnswered ? (
+                <Button variant="accent" onClick={handleNext}>
+                  {currentQuestion < total - 1 ? 'Continue' : 'Finish quiz'}
+                </Button>
+              ) : (
+                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                  Tip: use keys 1-4 to answer.
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        <div className="mt-5 text-center">
+          <Link to={`/chapter/${subjectId}/${chapterId}`} style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>
+            Leave quiz
+          </Link>
         </div>
-      </div>
+      </PageShell>
     </PageTransition>
   )
 }

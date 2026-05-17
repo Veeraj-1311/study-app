@@ -1,65 +1,41 @@
-import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Brain, FileText, Play, ChevronRight, RotateCcw } from 'lucide-react'
+import { ArrowLeft, BookOpen, Brain, FileText, Play, RotateCcw } from 'lucide-react'
 import quizData from '../data/quizData.js'
-import { playClick } from '../utils/sounds.js'
-import PageTransition from '../components/PageTransition'
-import { useTheme, useSubjectBackground } from '../contexts/ThemeContext.jsx'
-import QuestionCountSelector from '../components/QuestionCountSelector.jsx'
 import ChapterNotes from '../components/ChapterNotes.jsx'
+import PageTransition from '../components/PageTransition'
+import QuestionCountSelector from '../components/QuestionCountSelector.jsx'
+import { AppNav, Button, Card, EmptyState, PageHeader, PageShell } from '../components/ui.jsx'
+import { getMistakeCount } from '../utils/progress.js'
+import { playClick } from '../utils/sounds.js'
+import { useSubjectBackground, useTheme } from '../hooks/useTheme.js'
 
-const getMistakeCount = (subjectId, chapterId) => {
+const loadQuestionCount = () => {
   try {
-    const m = JSON.parse(localStorage.getItem('learnflow-mistakes') || '{}')
-    return (m[subjectId]?.[chapterId] || []).length
-  } catch { return 0 }
+    return parseInt(localStorage.getItem('learnflow-quiz-count') || '10', 10)
+  } catch {
+    return 10
+  }
 }
 
-function OptionRow({ to, onClick, icon: Icon, label, description, accentColor, index, children }) {
-  const inner = (
-    <div
-      className="relative flex items-start gap-4 px-5 py-5 rounded-xl w-full text-left overflow-hidden transition-all"
-      style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#303030'
-        e.currentTarget.style.borderColor = `${accentColor}66`
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = '#2a2a2a'
-        e.currentTarget.style.borderColor = '#3c3c3c'
-      }}
-    >
-      <motion.div
-        whileHover={{ rotate: -6, scale: 1.05 }}
-        transition={{ type: 'spring', stiffness: 240, damping: 18 }}
-        className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-        style={{ backgroundColor: `${accentColor}1f`, boxShadow: `inset 0 0 0 1px ${accentColor}33` }}
-      >
-        <Icon size={20} style={{ color: accentColor }} strokeWidth={2} />
-      </motion.div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-medium" style={{ color: '#e8eaed' }}>{label}</h3>
-          <ChevronRight size={16} style={{ color: '#5f6368' }} />
-        </div>
-        <p className="text-xs mt-0.5" style={{ color: '#9aa0a6' }}>{description}</p>
-        {children && <div className="mt-3" onClick={(e) => e.stopPropagation()}>{children}</div>}
-      </div>
-    </div>
-  )
-
+function ActionCard({ icon: Icon, title, description, color, onClick, children, index }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: 0.15 + index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ delay: 0.06 * index, duration: 0.2 }}
     >
-      {to ? (
-        <Link to={to} className="block" onClick={playClick}>{inner}</Link>
-      ) : (
-        <button type="button" className="block w-full" onClick={onClick}>{inner}</button>
-      )}
+      <Card as="button" type="button" interactive className="action-card" onClick={onClick}>
+        <span className="action-icon" style={{ color, background: `${color}14` }}>
+          <Icon size={21} />
+        </span>
+        <span className="action-copy">
+          <h3>{title}</h3>
+          <p>{description}</p>
+          {children && <span className="block mt-3">{children}</span>}
+        </span>
+      </Card>
     </motion.div>
   )
 }
@@ -68,154 +44,114 @@ export default function ChapterLanding() {
   const { subjectId, chapterId } = useParams()
   const navigate = useNavigate()
   const subject = quizData[subjectId]
-  const chapter = subject?.chapters?.find((c) => c.id === Number(chapterId))
+  const chapter = subject?.chapters?.find((item) => item.id === Number(chapterId))
   const { getSubjectColor } = useTheme()
   useSubjectBackground(subjectId)
-
-  const [questionCount, setQuestionCount] = useState(() => {
-    try { return parseInt(localStorage.getItem('learnflow-quiz-count') || '10', 10) } catch { return 10 }
-  })
-  const [mistakeCount, setMistakeCount] = useState(() => getMistakeCount(subjectId, chapterId))
-
-  useEffect(() => {
-    setMistakeCount(getMistakeCount(subjectId, chapterId))
-  }, [subjectId, chapterId])
-
-  const handleReviewMistakes = () => {
-    playClick()
-    navigate(`/quiz/${subjectId}/${chapterId}?review=mistakes`)
-  }
-
-  const handleCountChange = (count) => {
-    setQuestionCount(count)
-    localStorage.setItem('learnflow-quiz-count', String(count))
-  }
-
-  const handleStartQuiz = () => {
-    playClick()
-    navigate(`/quiz/${subjectId}/${chapterId}?count=${questionCount}`)
-  }
+  const [questionCount, setQuestionCount] = useState(loadQuestionCount)
 
   if (!subject || !chapter) {
     return (
       <PageTransition>
-        <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ color: '#e8eaed' }}>
-          <h2 className="text-2xl font-medium mb-3" style={{ letterSpacing: '-0.02em' }}>Chapter not found</h2>
-          <Link to="/" className="inline-flex items-center gap-2 text-sm" style={{ color: 'var(--color-accent)' }}>
-            <ArrowLeft size={16} />
-            Back to Home
-          </Link>
-        </div>
+        <PageShell size="narrow">
+          <AppNav backTo="/" />
+          <EmptyState
+            icon={BookOpen}
+            title="Chapter not found"
+            description="This chapter is not available in LearnFlow."
+            action={<Button to="/" icon={ArrowLeft}>Back home</Button>}
+          />
+        </PageShell>
       </PageTransition>
     )
   }
 
   const subjectColor = getSubjectColor(subjectId)
+  const mistakeCount = getMistakeCount(subjectId, chapterId)
+
+  const handleCountChange = (count) => {
+    setQuestionCount(count)
+    try {
+      localStorage.setItem('learnflow-quiz-count', String(count))
+    } catch {
+      // The selector still works for the current session.
+    }
+  }
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen w-full overflow-hidden" style={{ color: '#e8eaed' }}>
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `radial-gradient(700px 400px at 50% -10%, ${subjectColor}1a, transparent 60%), radial-gradient(500px 300px at 100% 100%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.06), transparent 60%)`,
-          }}
+      <PageShell size="focus">
+        <AppNav backTo={`/subject/${subjectId}`} />
+        <PageHeader
+          icon={BookOpen}
+          eyebrow={subject.name}
+          title={chapter.name}
+          description="Choose how you want to work through this chapter. Notes stay saved on this device."
         />
 
-        <div className="relative max-w-2xl mx-auto px-6 py-10 sm:py-14">
-          <Link
-            to={`/subject/${subjectId}`}
-            onClick={playClick}
-            className="inline-flex items-center gap-2 text-sm mb-10"
-            style={{ color: '#9aa0a6' }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#e8eaed' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#9aa0a6' }}
-          >
-            <ArrowLeft size={16} />
-            Back
-          </Link>
-
-          <motion.header
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="mb-10"
-          >
-            <p className="text-sm mb-2 inline-flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: subjectColor, boxShadow: `0 0 8px ${subjectColor}` }} />
-              <span style={{ color: subjectColor }}>{subject.name}</span>
-            </p>
-            <h1
-              className="text-3xl sm:text-4xl font-medium leading-tight"
-              style={{
-                letterSpacing: '-0.02em',
-                backgroundImage: `linear-gradient(135deg, #e8eaed 0%, ${subjectColor} 100%)`,
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                color: 'transparent',
-              }}
-            >
-              {chapter.name}
-            </h1>
-          </motion.header>
-
-          <div className="space-y-2">
-            <OptionRow
-              onClick={handleStartQuiz}
+        <div className="split-layout">
+          <section className="action-list">
+            <ActionCard
               icon={Brain}
-              label="Quiz"
-              description="Test your knowledge with multiple choice questions"
-              accentColor="var(--color-accent)"
+              title="Quiz"
+              description="A focused multiple-choice session with explanations after each answer."
+              color={subjectColor}
               index={0}
+              onClick={() => {
+                playClick()
+                navigate(`/quiz/${subjectId}/${chapterId}?count=${questionCount}`)
+              }}
             >
               <QuestionCountSelector
                 value={questionCount}
                 onChange={handleCountChange}
-                maxAvailable={chapter.questions?.length || 15}
+                maxAvailable={chapter.questions?.length || 10}
               />
-            </OptionRow>
+            </ActionCard>
 
-            <OptionRow
-              to={`/summary/${subjectId}/${chapterId}`}
+            <ActionCard
               icon={FileText}
-              label="Summary"
-              description="Review the key concepts of this chapter"
-              accentColor="#8ab4f8"
+              title="Summary"
+              description="Scan the core points before a quiz or revision session."
+              color="#2563eb"
               index={1}
+              onClick={() => {
+                playClick()
+                navigate(`/summary/${subjectId}/${chapterId}`)
+              }}
             />
 
-            <OptionRow
-              to={`/video/${subjectId}/${chapterId}`}
+            <ActionCard
               icon={Play}
-              label="Video"
-              description="Watch a video explanation"
-              accentColor="#f28b82"
+              title="Video"
+              description="Attach or watch YouTube explanations for this chapter."
+              color="#dc2626"
               index={2}
+              onClick={() => {
+                playClick()
+                navigate(`/video/${subjectId}/${chapterId}`)
+              }}
             />
 
             {mistakeCount > 0 && (
-              <OptionRow
-                onClick={handleReviewMistakes}
+              <ActionCard
                 icon={RotateCcw}
-                label={`Review mistakes (${mistakeCount})`}
-                description="Re-quiz only on the questions you got wrong last time"
-                accentColor="#fdd663"
+                title={`Review mistakes (${mistakeCount})`}
+                description="Only revisit questions you missed in previous attempts."
+                color="#d97706"
                 index={3}
+                onClick={() => {
+                  playClick()
+                  navigate(`/quiz/${subjectId}/${chapterId}?review=mistakes`)
+                }}
               />
             )}
-          </div>
+          </section>
 
-          <motion.section
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-8"
-          >
-            <ChapterNotes subjectId={subjectId} chapterId={chapterId} />
-          </motion.section>
+          <aside>
+            <ChapterNotes key={`${subjectId}-${chapterId}`} subjectId={subjectId} chapterId={chapterId} />
+          </aside>
         </div>
-      </div>
+      </PageShell>
     </PageTransition>
   )
 }

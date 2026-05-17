@@ -1,90 +1,86 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { StickyNote, Check } from 'lucide-react'
+import { Check, StickyNote } from 'lucide-react'
+import { Card } from './ui.jsx'
 
 const STORAGE_KEY = 'learnflow-chapter-notes'
 
+const keyFor = (subjectId, chapterId) => `${subjectId}_${chapterId}`
+
 const loadAll = () => {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') } catch { return {} }
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+  } catch {
+    return {}
+  }
 }
 
-const saveAll = (obj) => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)) } catch {}
+const saveAll = (notes) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes))
+  } catch {
+    return false
+  }
+  return true
 }
 
-const keyFor = (s, c) => `${s}_${c}`
+const loadNote = (subjectId, chapterId) => loadAll()[keyFor(subjectId, chapterId)] || ''
 
 export default function ChapterNotes({ subjectId, chapterId }) {
-  const [value, setValue] = useState('')
+  const [value, setValue] = useState(() => loadNote(subjectId, chapterId))
   const [saved, setSaved] = useState(false)
   const debounceRef = useRef(null)
-  const initialLoadRef = useRef(true)
+  const initialRenderRef = useRef(true)
 
   useEffect(() => {
-    const all = loadAll()
-    setValue(all[keyFor(subjectId, chapterId)] || '')
-    initialLoadRef.current = true
-  }, [subjectId, chapterId])
-
-  useEffect(() => {
-    if (initialLoadRef.current) {
-      initialLoadRef.current = false
-      return
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false
+      return undefined
     }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       const all = loadAll()
-      const k = keyFor(subjectId, chapterId)
-      if (value.trim() === '') delete all[k]
-      else all[k] = value
+      const key = keyFor(subjectId, chapterId)
+      if (value.trim()) all[key] = value
+      else delete all[key]
       saveAll(all)
       setSaved(true)
-      setTimeout(() => setSaved(false), 1400)
-    }, 400)
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+      window.setTimeout(() => setSaved(false), 1200)
+    }, 350)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
   }, [value, subjectId, chapterId])
 
-  const charCount = value.length
-
   return (
-    <div
-      className="rounded-2xl p-5"
-      style={{ backgroundColor: '#242424', border: '1px solid #3c3c3c' }}
-    >
-      <div className="flex items-center justify-between mb-3">
+    <Card className="notes-box">
+      <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <StickyNote size={16} style={{ color: 'var(--color-accent)' }} />
-          <h3 className="text-sm font-medium" style={{ color: '#e8eaed' }}>Notes</h3>
+          <StickyNote size={17} style={{ color: 'var(--color-accent)' }} />
+          <h2 className="text-base font-extrabold m-0">Chapter notes</h2>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs tabular-nums" style={{ color: '#5f6368' }}>
-            {charCount > 0 ? `${charCount} chars` : ''}
-          </span>
-          <AnimatePresence>
-            {saved && (
-              <motion.span
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="inline-flex items-center gap-1 text-xs"
-                style={{ color: '#81c995' }}
-              >
-                <Check size={12} />
-                Saved
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </div>
+        <AnimatePresence>
+          {saved && (
+            <motion.span
+              initial={{ opacity: 0, y: -3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -3 }}
+              className="status-pill"
+              style={{ color: '#16a34a' }}
+            >
+              <Check size={14} />
+              Saved
+            </motion.span>
+          )}
+        </AnimatePresence>
       </div>
       <textarea
+        className="text-area"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="Jot down formulas, doubts, mnemonics… auto-saves as you type."
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="Jot formulas, doubts, examples, or quick reminders. Notes auto-save."
         rows={5}
-        className="w-full bg-transparent text-sm leading-relaxed outline-none resize-y"
-        style={{ color: '#e8eaed', fontFamily: 'inherit' }}
       />
-    </div>
+    </Card>
   )
 }

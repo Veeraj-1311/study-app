@@ -1,259 +1,172 @@
-import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit, ChevronRight, Sparkles, BarChart3 } from 'lucide-react'
+import { motion } from 'framer-motion'
+import {
+  BarChart3,
+  BookOpen,
+  BrainCircuit,
+  Calculator,
+  ChevronRight,
+  FlaskConical,
+  Globe,
+  Languages,
+  Sparkles,
+  Target,
+  Timer,
+} from 'lucide-react'
 import quizData from '../data/quizData.js'
-import { playClick } from '../utils/sounds.js'
+import AskAI from '../components/AskAI'
 import PageTransition from '../components/PageTransition'
 import TaskList from '../components/TaskList'
 import ThemeSwitcher from '../components/ThemeSwitcher'
-import AskAI from '../components/AskAI'
-import { useTheme } from '../contexts/ThemeContext.jsx'
+import { AppNav, Button, Card, Metric, PageHeader, PageShell, ProgressBar } from '../components/ui.jsx'
+import { loadMistakes, loadProgress } from '../utils/progress.js'
+import { playClick } from '../utils/sounds.js'
+import useStreak from '../hooks/useStreak.js'
+import { useTheme } from '../hooks/useTheme.js'
 
 const iconMap = { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit }
 
-const quotes = [
-  'The expert in anything was once a beginner.',
-  'Education is the passport to the future.',
-  'Small steps every day lead to big results.',
-  'The beautiful thing about learning is that no one can take it away from you.',
-  'Success is the sum of small efforts repeated day in and day out.',
-]
-
-const getProgress = () => {
-  try { return JSON.parse(localStorage.getItem('learnflow-progress') || '{}') } catch { return {} }
+const greetingFor = (hour) => {
+  if (hour < 5) return 'Late-night focus'
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  if (hour < 21) return 'Good evening'
+  return 'Evening study mode'
 }
 
-const greetingFor = (h) => {
-  if (h < 5) return 'Late night session'
-  if (h < 12) return 'Good morning'
-  if (h < 17) return 'Good afternoon'
-  if (h < 21) return 'Good evening'
-  return 'Burning the midnight oil'
-}
-
-function SubjectCard({ subjectId, subject, progress, index }) {
+function SubjectCard({ subjectId, subject, progress, mistakes, index }) {
   const { getSubjectColor } = useTheme()
-  const IconComponent = iconMap[subject.icon]
-  const subjectProgress = progress[subjectId] || {}
-  let completed = 0
-  subject.chapters.forEach((ch) => {
-    if (subjectProgress[ch.id]?.status === 'completed') completed++
-  })
-  const total = subject.chapters.length
-  const pct = total > 0 ? Math.round((completed / total) * 100) : 0
+  const Icon = iconMap[subject.icon] || BookOpen
   const color = getSubjectColor(subjectId)
+  const subjectProgress = progress[subjectId] || {}
+  const completed = subject.chapters.filter((chapter) => subjectProgress[chapter.id]?.status === 'completed').length
+  const total = subject.chapters.length
+  const percent = total ? Math.round((completed / total) * 100) : 0
+  const mistakeCount = Object.values(mistakes[subjectId] || {}).reduce((sum, item) => sum + item.length, 0)
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: 0.15 + index * 0.07, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ delay: 0.05 + index * 0.04, duration: 0.22 }}
     >
-      <Link to={`/subject/${subjectId}`} onClick={playClick} className="block group">
-        <motion.div
-          whileHover={{ y: -4 }}
-          whileTap={{ scale: 0.985 }}
-          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="relative rounded-2xl p-5 h-full overflow-hidden"
-          style={{
-            backgroundColor: '#2a2a2a',
-            border: '1px solid #3c3c3c',
-            transition: 'border-color 0.28s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = color
-            e.currentTarget.style.backgroundColor = '#2f2f2f'
-            e.currentTarget.style.boxShadow = `0 14px 38px -16px ${color}99, 0 4px 12px -6px rgba(0,0,0,0.4), 0 0 0 1px ${color}33 inset`
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = '#3c3c3c'
-            e.currentTarget.style.backgroundColor = '#2a2a2a'
-            e.currentTarget.style.boxShadow = 'none'
-          }}
-        >
-          <div
-            aria-hidden
-            className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-            style={{ background: `radial-gradient(circle, ${color}33, transparent 70%)` }}
-          />
-
-          <div className="flex items-center justify-between mb-5 relative">
-            <motion.div
-              whileHover={{ rotate: -6, scale: 1.05 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${color}1f`, boxShadow: `inset 0 0 0 1px ${color}33` }}
-            >
-              {IconComponent && <IconComponent size={20} style={{ color }} strokeWidth={2} />}
-            </motion.div>
-            <ChevronRight
-              size={18}
-              className="transition-transform group-hover:translate-x-0.5"
-              style={{ color: '#5f6368' }}
-            />
+      <Card as={Link} to={`/subject/${subjectId}`} interactive className="subject-card" onClick={playClick}>
+        <div className="subject-card-top">
+          <div className="subject-icon" style={{ color, background: `${color}14` }}>
+            <Icon size={22} />
           </div>
-
-          <h3 className="text-base font-medium mb-1" style={{ color: '#e8eaed' }}>
-            {subject.name}
-          </h3>
-          <p className="text-xs mb-4" style={{ color: '#9aa0a6' }}>
-            {total} chapter{total !== 1 ? 's' : ''} · {completed} done
+          <ChevronRight size={18} style={{ color: 'var(--color-text-muted)' }} />
+        </div>
+        <h3>{subject.name}</h3>
+        <p>{total} chapters / {completed} completed</p>
+        <div className="mt-5">
+          <ProgressBar value={percent} color={color} label={`${percent}%`} />
+        </div>
+        {mistakeCount > 0 && (
+          <p className="mt-3 text-sm font-bold" style={{ color: '#d97706' }}>
+            {mistakeCount} mistakes to review
           </p>
-
-          <div className="flex items-center gap-2">
-            <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ backgroundColor: '#3c3c3c' }}>
-              <motion.div
-                className="h-full rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.9, delay: 0.4 + index * 0.07, ease: [0.22, 1, 0.36, 1] }}
-                style={{ background: `linear-gradient(90deg, ${color}, ${color}cc)` }}
-              />
-            </div>
-            <span className="text-xs tabular-nums" style={{ color: '#9aa0a6' }}>{pct}%</span>
-          </div>
-        </motion.div>
-      </Link>
+        )}
+      </Card>
     </motion.div>
   )
 }
 
 export default function Home() {
-  const [quoteIndex, setQuoteIndex] = useState(0)
-  const [greeting, setGreeting] = useState(() => greetingFor(new Date().getHours()))
-  const progress = getProgress()
-
-  useEffect(() => {
-    const id = setInterval(() => setQuoteIndex((p) => (p + 1) % quotes.length), 8000)
-    return () => clearInterval(id)
-  }, [])
-
-  useEffect(() => {
-    setGreeting(greetingFor(new Date().getHours()))
-  }, [])
-
+  const progress = loadProgress()
+  const mistakes = loadMistakes()
   const subjects = Object.entries(quizData)
+  const greeting = greetingFor(new Date().getHours())
+  const { todayMinutes, progress: streakProgress, streak } = useStreak()
+
+  let totalChapters = 0
+  let completedChapters = 0
+  let totalScore = 0
+  let totalQuestions = 0
+  let totalMistakes = 0
+
+  subjects.forEach(([subjectId, subject]) => {
+    totalChapters += subject.chapters.length
+    subject.chapters.forEach((chapter) => {
+      const item = progress[subjectId]?.[chapter.id]
+      if (!item) return
+      totalScore += item.bestScore || 0
+      totalQuestions += item.bestTotal || 0
+      if (item.status === 'completed') completedChapters += 1
+    })
+    Object.values(mistakes[subjectId] || {}).forEach((list) => {
+      totalMistakes += list.length
+    })
+  })
+
+  const accuracy = totalQuestions ? Math.round((totalScore / totalQuestions) * 100) : 0
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen w-full overflow-hidden" style={{ color: '#e8eaed' }}>
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(800px 500px at 50% -10%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.12), transparent 60%),' +
-              'radial-gradient(700px 400px at 0% 50%, rgba(var(--color-accent-cyan-r), var(--color-accent-cyan-g), var(--color-accent-cyan-b), 0.07), transparent 60%),' +
-              'radial-gradient(700px 400px at 100% 50%, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.06), transparent 60%),' +
-              'radial-gradient(600px 400px at 50% 110%, rgba(var(--color-accent-cyan-r), var(--color-accent-cyan-g), var(--color-accent-cyan-b), 0.05), transparent 60%)',
-          }}
-        />
-        <motion.div
-          aria-hidden
-          className="absolute pointer-events-none"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.2, delay: 0.2 }}
-          style={{
-            top: '20%', left: '50%', width: 420, height: 420,
-            transform: 'translateX(-50%)',
-            background: 'radial-gradient(circle, rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.08), transparent 70%)',
-            filter: 'blur(40px)',
-          }}
+      <PageShell>
+        <AppNav
+          actions={(
+            <>
+              <ThemeSwitcher inline />
+              <AskAI inline />
+              <Button to="/stats" variant="secondary" size="sm" icon={BarChart3}>Stats</Button>
+            </>
+          )}
         />
 
-        <div className="relative min-h-screen flex flex-col items-center justify-center w-full max-w-6xl mx-auto px-6 py-16">
-          <motion.header
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="mb-12 flex flex-col items-center text-center"
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-6" style={{ backgroundColor: '#2a2a2a', border: '1px solid #3c3c3c' }}>
-              <Sparkles size={12} style={{ color: 'var(--color-accent)' }} />
-              <span className="text-xs" style={{ color: '#9aa0a6' }}>{greeting}</span>
-            </div>
-            <motion.img
-              src="/logo.png"
-              alt="LearnFlow"
-              initial={{ opacity: 0, scale: 0.94 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
-              style={{
-                height: '7rem',
-                width: 'auto',
-                objectFit: 'contain',
-                filter: 'drop-shadow(0 0 22px rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.4)) drop-shadow(0 0 50px rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.18))',
-              }}
-            />
-            <p className="text-base mt-4 max-w-md" style={{ color: '#9aa0a6' }}>
-              Pick a subject and keep the momentum going.
-            </p>
-            <Link
-              to="/stats"
-              onClick={playClick}
-              className="inline-flex items-center gap-1.5 text-xs mt-4 px-3 py-1.5 rounded-full transition-colors"
-              style={{ color: '#9aa0a6', backgroundColor: 'transparent', border: '1px solid #3c3c3c' }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-accent)'; e.currentTarget.style.borderColor = 'var(--color-accent)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#9aa0a6'; e.currentTarget.style.borderColor = '#3c3c3c' }}
-            >
-              <BarChart3 size={12} />
-              View progress
-            </Link>
-          </motion.header>
+        <PageHeader
+          icon={Sparkles}
+          eyebrow={greeting}
+          title="Study with less friction."
+          description="Pick a chapter, quiz yourself, keep quick notes, and use the progress trail to decide what needs attention next."
+          actions={<Button to={`/subject/${subjects[0]?.[0] || 'math'}`} variant="accent" size="lg" icon={Target}>Start studying</Button>}
+        />
 
-          <div className="flex flex-col lg:flex-row lg:justify-between items-start gap-8 lg:gap-16 mb-12 w-full">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full lg:max-w-[600px]">
-              {subjects.map(([subjectId, subject], index) => (
-                <SubjectCard
-                  key={subjectId}
-                  subjectId={subjectId}
-                  subject={subject}
-                  progress={progress}
-                  index={index}
-                />
-              ))}
-            </div>
-
-            <motion.section
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45, duration: 0.4, ease: 'easeOut' }}
-              className="w-full lg:w-[320px] lg:shrink-0 rounded-2xl p-5"
-              style={{ backgroundColor: '#242424', border: '1px solid #3c3c3c' }}
-            >
-              <TaskList />
-            </motion.section>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.6 }}
-            className="pt-6 flex items-center justify-center gap-3 w-full max-w-xl border-t"
-            style={{ borderColor: '#3c3c3c' }}
-          >
-            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--color-accent)', boxShadow: '0 0 8px var(--color-accent)' }} />
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={quoteIndex}
-                initial={{ opacity: 0, x: -4 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 4 }}
-                transition={{ duration: 0.4 }}
-                className="text-sm text-center"
-                style={{ color: '#9aa0a6', fontStyle: 'italic' }}
-              >
-                {quotes[quoteIndex]}
-              </motion.p>
-            </AnimatePresence>
-          </motion.div>
+        <div className="quick-stats">
+          <Metric icon={BookOpen} label="Chapters done" value={`${completedChapters}/${totalChapters}`} />
+          <Metric icon={Target} label="Accuracy" value={`${accuracy}%`} color="#16a34a" />
+          <Metric icon={Timer} label="Today" value={`${todayMinutes}m`} color="#d97706" />
         </div>
 
-        <ThemeSwitcher />
-        <AskAI />
-      </div>
+        <div className="dashboard-grid">
+          <section>
+            <div className="subject-grid">
+              {subjects.map(([subjectId, subject], index) => (
+                <div key={subjectId}>
+                  <SubjectCard
+                    subjectId={subjectId}
+                    subject={subject}
+                    progress={progress}
+                    mistakes={mistakes}
+                    index={index}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <aside className="home-panel">
+            <Card className="p-5">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="text-lg font-extrabold m-0">Daily rhythm</h2>
+                  <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    {streak > 0 ? `${streak} day streak` : 'Build a 30 minute study day.'}
+                  </p>
+                </div>
+                <Sparkles size={20} style={{ color: 'var(--color-accent)' }} />
+              </div>
+              <ProgressBar value={Math.round(streakProgress * 100)} label={`${Math.round(streakProgress * 100)}%`} />
+              {totalMistakes > 0 && (
+                <p className="mt-4 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                  You have <strong style={{ color: '#d97706' }}>{totalMistakes}</strong> saved mistakes across subjects.
+                </p>
+              )}
+            </Card>
+            <TaskList />
+          </aside>
+        </div>
+      </PageShell>
     </PageTransition>
   )
 }

@@ -1,41 +1,48 @@
-import { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Bot, X, Send, Sparkles, Trash2, AlertCircle, User } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { AlertCircle, Bot, Send, Sparkles, Trash2, User, X } from 'lucide-react'
+import { Button, IconButton } from './ui.jsx'
 
 const STORAGE_KEY = 'learnflow-ai-chat'
 
 const loadHistory = () => {
-  try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
+  try {
+    return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]')
+  } catch {
+    return []
+  }
 }
 
-const saveHistory = (msgs) => {
-  try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(msgs)) } catch {}
+const saveHistory = (messages) => {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+  } catch {
+    return false
+  }
+  return true
 }
 
 function FormattedAnswer({ text }) {
-  // Tiny markdown helper: **bold**, line breaks, and simple lists.
   const lines = text.split('\n')
   return (
-    <div className="space-y-2">
-      {lines.map((line, i) => {
+    <div>
+      {lines.map((line, index) => {
         const trimmed = line.trim()
-        if (trimmed === '') return <div key={i} style={{ height: 4 }} />
-        const isBullet = /^[-*•]\s/.test(trimmed)
-        const cleaned = isBullet ? trimmed.replace(/^[-*•]\s/, '') : trimmed
+        if (!trimmed) return <p key={index} aria-hidden>&nbsp;</p>
+        const isBullet = /^[-*]\s/.test(trimmed)
+        const cleaned = isBullet ? trimmed.replace(/^[-*]\s/, '') : trimmed
         const parts = cleaned.split(/(\*\*[^*]+\*\*)/g)
         return (
-          <div key={i} className={isBullet ? 'flex gap-2' : ''}>
-            {isBullet && <span style={{ color: 'var(--color-accent)', marginTop: 6 }}>•</span>}
-            <p className="text-sm leading-relaxed flex-1" style={{ color: '#e8eaed' }}>
-              {parts.map((p, j) =>
-                p.startsWith('**') && p.endsWith('**') ? (
-                  <strong key={j} style={{ color: '#ffffff' }}>{p.slice(2, -2)}</strong>
-                ) : (
-                  <span key={j}>{p}</span>
-                )
-              )}
-            </p>
-          </div>
+          <p key={index} style={{ display: isBullet ? 'flex' : 'block', gap: 8 }}>
+            {isBullet && <span style={{ color: 'var(--color-accent)' }}>&bull;</span>}
+            <span>
+              {parts.map((part, partIndex) => (
+                part.startsWith('**') && part.endsWith('**')
+                  ? <strong key={partIndex}>{part.slice(2, -2)}</strong>
+                  : <span key={partIndex}>{part}</span>
+              ))}
+            </span>
+          </p>
         )
       })}
     </div>
@@ -44,21 +51,15 @@ function FormattedAnswer({ text }) {
 
 function TypingDots() {
   return (
-    <div className="flex gap-1 items-center px-1 py-2">
-      {[0, 1, 2].map((i) => (
-        <motion.span
-          key={i}
-          animate={{ opacity: [0.3, 1, 0.3], y: [0, -2, 0] }}
-          transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ backgroundColor: 'var(--color-accent)' }}
-        />
-      ))}
+    <div className="typing-dots" aria-label="AI is typing">
+      <span />
+      <span />
+      <span />
     </div>
   )
 }
 
-export default function AskAI({ defaultContext = '' }) {
+export default function AskAI({ defaultContext = '', inline = false }) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [context, setContext] = useState(defaultContext)
@@ -68,15 +69,14 @@ export default function AskAI({ defaultContext = '' }) {
   const inputRef = useRef(null)
   const listEndRef = useRef(null)
 
-  useEffect(() => { setContext(defaultContext) }, [defaultContext])
-
-  useEffect(() => { saveHistory(messages) }, [messages])
+  useEffect(() => {
+    saveHistory(messages)
+  }, [messages])
 
   useEffect(() => {
-    if (open) {
-      const t = setTimeout(() => inputRef.current?.focus(), 220)
-      return () => clearTimeout(t)
-    }
+    if (!open) return undefined
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 180)
+    return () => window.clearTimeout(focusTimer)
   }, [open])
 
   useEffect(() => {
@@ -84,7 +84,9 @@ export default function AskAI({ defaultContext = '' }) {
   }, [messages, loading, open])
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape' && open) setOpen(false) }
+    const onKey = (event) => {
+      if (event.key === 'Escape' && open) setOpen(false)
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
@@ -94,23 +96,29 @@ export default function AskAI({ defaultContext = '' }) {
     if (!text || loading) return
     setError(null)
     setInput('')
-    const next = [...messages, { role: 'user', content: text, id: Date.now() }]
+    const next = [...messages, { role: 'user', content: text, id: crypto.randomUUID?.() || `${Date.now()}` }]
     setMessages(next)
     setLoading(true)
     try {
-      const res = await fetch('/api/ask', {
+      const response = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next.map(({ role, content }) => ({ role, content })), context: context.trim() }),
+        body: JSON.stringify({
+          messages: next.map(({ role, content }) => ({ role, content })),
+          context: context.trim(),
+        }),
       })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(data.error || `Request failed (${res.status})`)
-      } else {
-        setMessages((m) => [...m, { role: 'assistant', content: data.answer, id: Date.now() + 1 }])
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setError(data.error || `Ask AI is unavailable right now (${response.status}).`)
+        return
       }
-    } catch (e) {
-      setError(e?.message || 'Network error')
+      setMessages((current) => [
+        ...current,
+        { role: 'assistant', content: data.answer || 'I did not get a usable answer.', id: crypto.randomUUID?.() || `${Date.now()}-ai` },
+      ])
+    } catch (requestError) {
+      setError(requestError?.message || 'Network error. Try again in a moment.')
     } finally {
       setLoading(false)
     }
@@ -121,224 +129,138 @@ export default function AskAI({ defaultContext = '' }) {
     setError(null)
   }
 
-  const handleKey = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
-
   return (
     <>
-      <motion.button
-        whileHover={{ y: -2 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 inline-flex items-center gap-2 pl-3.5 pr-4 py-2.5 rounded-full text-sm font-medium z-30"
-        style={{
-          backgroundColor: '#2a2a2a',
-          color: '#e8eaed',
-          border: '1px solid #3c3c3c',
-          boxShadow: '0 10px 30px -10px rgba(0,0,0,0.6)',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#353535'
-          e.currentTarget.style.borderColor = 'var(--color-accent)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#2a2a2a'
-          e.currentTarget.style.borderColor = '#3c3c3c'
-        }}
-        aria-label="Ask AI"
-      >
-        <Bot size={16} style={{ color: 'var(--color-accent)' }} />
-        Ask AI
-      </motion.button>
+      <div className={inline ? 'inline-tool' : 'ai-fab'}>
+        <motion.button
+          type="button"
+          className={inline ? 'button button-secondary button-sm' : 'floating-button'}
+          onClick={() => setOpen(true)}
+          whileTap={{ scale: 0.96 }}
+          aria-label="Ask AI"
+        >
+          <Bot size={17} style={{ color: 'var(--color-accent)' }} />
+          <span>Ask AI</span>
+        </motion.button>
+      </div>
 
       <AnimatePresence>
         {open && (
           <>
             <motion.div
+              className="modal-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
               onClick={() => setOpen(false)}
-              style={{
-                position: 'fixed', inset: 0,
-                backgroundColor: 'rgba(0,0,0,0.55)',
-                backdropFilter: 'blur(2px)',
-                WebkitBackdropFilter: 'blur(2px)',
-                zIndex: 50,
-              }}
             />
             <motion.div
-              initial={{ opacity: 0, y: 16, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.97 }}
-              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="ai-dialog"
               role="dialog"
               aria-label="Ask AI"
-              style={{
-                position: 'fixed',
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 'min(640px, calc(100vw - 32px))',
-                height: 'min(82vh, 760px)',
-                backgroundColor: '#202020',
-                border: '1px solid #3c3c3c',
-                borderRadius: 16,
-                zIndex: 51,
-                display: 'flex',
-                flexDirection: 'column',
-                boxShadow: '0 24px 60px -20px rgba(0,0,0,0.7)',
-              }}
+              initial={{ opacity: 0, y: 14, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 14, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
             >
-              <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: '1px solid #3c3c3c' }}>
-                <div className="flex items-center gap-2">
-                  <Bot size={18} style={{ color: 'var(--color-accent)' }} />
+              <div className="ai-header">
+                <div className="ai-title">
+                  <span className="ai-avatar">
+                    <Bot size={16} />
+                  </span>
                   <div>
-                    <h2 className="text-base font-medium leading-tight" style={{ color: '#e8eaed', letterSpacing: '-0.01em' }}>Ask AI</h2>
-                    <p className="text-xs" style={{ color: '#5f6368' }}>Gemini 2.0 Flash · in-app</p>
+                    <h2>Ask AI</h2>
+                    <p>Gemini-powered tutor, once the API key is added.</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   {messages.length > 0 && (
-                    <button
-                      onClick={handleClear}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-colors"
-                      style={{ color: '#9aa0a6', backgroundColor: 'transparent' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#2a2a2a'; e.currentTarget.style.color = '#f28b82' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#9aa0a6' }}
-                    >
-                      <Trash2 size={12} />
+                    <Button variant="ghost" size="sm" icon={Trash2} onClick={handleClear}>
                       New chat
-                    </button>
+                    </Button>
                   )}
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-                    style={{ color: '#9aa0a6' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#2a2a2a'; e.currentTarget.style.color = '#e8eaed' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#9aa0a6' }}
-                    aria-label="Close"
-                  >
-                    <X size={18} />
-                  </button>
+                  <IconButton label="Close Ask AI" icon={X} onClick={() => setOpen(false)} />
                 </div>
               </div>
 
-              <div className="px-5 pt-3 shrink-0">
-                <input
-                  value={context}
-                  onChange={(e) => setContext(e.target.value)}
-                  placeholder="Context (optional) — e.g., Maths · Algebra · linear equations"
-                  className="w-full rounded-lg px-3 py-2 text-xs outline-none"
-                  style={{ backgroundColor: '#1a1a1a', border: '1px solid #3c3c3c', color: '#e8eaed' }}
-                />
+              <div className="ai-context">
+                <div className="field-shell">
+                  <input
+                    className="text-input"
+                    value={context}
+                    onChange={(event) => setContext(event.target.value)}
+                    placeholder="Context, e.g. Maths / Polynomials"
+                  />
+                </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              <div className="ai-messages">
                 {messages.length === 0 && !loading && !error && (
-                  <div className="h-full flex flex-col items-center justify-center text-center gap-2 py-8" style={{ color: '#5f6368' }}>
-                    <Sparkles size={22} style={{ color: 'var(--color-accent)' }} />
-                    <p className="text-sm font-medium" style={{ color: '#e8eaed' }}>Ask anything you're stuck on</p>
-                    <p className="text-xs max-w-xs">Explain a concept, walk through a problem, give an example. Add a context line above for sharper answers.</p>
+                  <div className="empty-state" style={{ minHeight: 260 }}>
+                    <div className="empty-icon">
+                      <Sparkles size={22} />
+                    </div>
+                    <h2>Ask what you are stuck on</h2>
+                    <p>Add the chapter context above, then ask for an explanation, example, or quick check.</p>
                   </div>
                 )}
 
                 <AnimatePresence initial={false}>
-                  {messages.map((m) => (
+                  {messages.map((message) => (
                     <motion.div
-                      key={m.id}
-                      initial={{ opacity: 0, y: 6 }}
+                      key={message.id}
+                      className="ai-message"
+                      initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.22, ease: 'easeOut' }}
-                      className="flex gap-3"
+                      exit={{ opacity: 0 }}
                     >
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                        style={{
-                          backgroundColor: m.role === 'user' ? '#2a2a2a' : 'rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.18)',
-                          border: m.role === 'user' ? '1px solid #3c3c3c' : '1px solid rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.4)',
-                          color: m.role === 'user' ? '#9aa0a6' : 'var(--color-accent)',
-                        }}
-                      >
-                        {m.role === 'user' ? <User size={14} /> : <Bot size={14} />}
-                      </div>
-                      <div className="flex-1 min-w-0 pt-0.5">
-                        {m.role === 'assistant'
-                          ? <FormattedAnswer text={m.content} />
-                          : <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#e8eaed' }}>{m.content}</p>
-                        }
+                      <span className="ai-avatar">
+                        {message.role === 'user' ? <User size={15} /> : <Bot size={15} />}
+                      </span>
+                      <div className="ai-bubble">
+                        {message.role === 'assistant'
+                          ? <FormattedAnswer text={message.content} />
+                          : <p>{message.content}</p>}
                       </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
 
                 {loading && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex gap-3"
-                  >
-                    <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                      style={{
-                        backgroundColor: 'rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.18)',
-                        border: '1px solid rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.4)',
-                        color: 'var(--color-accent)',
-                      }}
-                    >
-                      <Bot size={14} />
-                    </div>
+                  <div className="ai-message">
+                    <span className="ai-avatar"><Bot size={15} /></span>
                     <TypingDots />
-                  </motion.div>
+                  </div>
                 )}
 
                 {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex gap-2 items-start rounded-lg px-3 py-2.5"
-                    style={{ backgroundColor: 'rgba(242, 139, 130, 0.10)', border: '1px solid rgba(242, 139, 130, 0.35)' }}
-                  >
-                    <AlertCircle size={14} style={{ color: '#f28b82', marginTop: 2 }} />
-                    <p className="text-xs leading-relaxed" style={{ color: '#f28b82' }}>{error}</p>
-                  </motion.div>
+                  <div className="error-box">
+                    <AlertCircle size={16} style={{ flex: '0 0 auto', marginTop: 2 }} />
+                    <span>{error}</span>
+                  </div>
                 )}
 
                 <div ref={listEndRef} />
               </div>
 
-              <div className="px-5 pb-5 pt-3 shrink-0" style={{ borderTop: '1px solid #3c3c3c' }}>
-                <div
-                  className="flex gap-2 items-end rounded-xl px-3 py-2 transition-colors"
-                  style={{ backgroundColor: '#1a1a1a', border: '1px solid #3c3c3c' }}
-                >
+              <div className="ai-composer">
+                <div className="field-shell" style={{ alignItems: 'flex-end', paddingRight: 4 }}>
                   <textarea
                     ref={inputRef}
+                    className="text-area"
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKey}
-                    placeholder="What's your doubt? (Enter to send, Shift+Enter for newline)"
-                    rows={1}
-                    className="flex-1 bg-transparent text-sm py-1.5 outline-none resize-none leading-relaxed"
-                    style={{ color: '#e8eaed', fontFamily: 'inherit', maxHeight: 160 }}
-                  />
-                  <button
-                    onClick={handleSend}
-                    disabled={!input.trim() || loading}
-                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: input.trim() && !loading ? 'var(--color-accent)' : 'transparent',
-                      color: input.trim() && !loading ? '#1f1f1f' : '#5f6368',
+                    onChange={(event) => setInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault()
+                        handleSend()
+                      }
                     }}
-                    aria-label="Send"
-                  >
-                    <Send size={16} strokeWidth={2.2} />
-                  </button>
+                    placeholder="Type your doubt..."
+                    rows={1}
+                    style={{ minHeight: 44, maxHeight: 150, resize: 'none' }}
+                  />
+                  <IconButton label="Send message" icon={Send} disabled={!input.trim() || loading} onClick={handleSend} />
                 </div>
               </div>
             </motion.div>

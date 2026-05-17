@@ -1,5 +1,5 @@
 // Vercel serverless function: proxies Google's Gemini API so the key stays server-side.
-// Set GEMINI_API_KEY in Vercel project settings → Environment Variables.
+// Set GEMINI_API_KEY in Vercel project settings > Environment Variables.
 
 const SYSTEM_PROMPT = `You are a friendly, patient study tutor helping a student work through a doubt.
 - Explain concepts in clear, simple language. Use everyday examples when helpful.
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
     return res.status(503).json({
-      error: 'AI not configured yet. The owner of this app needs to add a GEMINI_API_KEY environment variable on Vercel. Get a free key at aistudio.google.com/apikey, then add it under Vercel → Settings → Environment Variables.',
+      error: 'AI not configured yet. Add GEMINI_API_KEY under Vercel > Settings > Environment Variables.',
     })
   }
 
@@ -32,10 +32,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'messages array required' })
   }
 
-  // Trim history to last 12 turns and map to Gemini's contents shape.
-  const contents = messages.slice(-12).map((m) => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: String(m.content || '').slice(0, 4000) }],
+  const contents = messages.slice(-12).map((message) => ({
+    role: message.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: String(message.content || '').slice(0, 4000) }],
   }))
 
   const systemText = context
@@ -75,18 +74,20 @@ export default async function handler(req, res) {
       try {
         const parsed = JSON.parse(text)
         detail = parsed?.error?.message || text
-      } catch {}
+      } catch {
+        detail = text
+      }
       return res.status(upstream.status).json({ error: `Upstream: ${detail}` })
     }
 
     const data = await upstream.json()
-    const answer = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('').trim() || ''
+    const answer = data?.candidates?.[0]?.content?.parts?.map((part) => part.text).join('').trim() || ''
     if (!answer) {
       const finish = data?.candidates?.[0]?.finishReason
       return res.status(502).json({ error: finish ? `Empty response (${finish})` : 'Empty response from model' })
     }
     return res.status(200).json({ answer })
-  } catch (e) {
-    return res.status(500).json({ error: `Server error: ${e?.message || 'unknown'}` })
+  } catch (error) {
+    return res.status(500).json({ error: `Server error: ${error?.message || 'unknown'}` })
   }
 }
