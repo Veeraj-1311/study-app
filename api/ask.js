@@ -71,11 +71,18 @@ export default async function handler(req, res) {
     if (!upstream.ok) {
       const text = await upstream.text()
       let detail = text
+      let reason = ''
       try {
         const parsed = JSON.parse(text)
         detail = parsed?.error?.message || text
+        reason = parsed?.error?.details?.find((item) => item?.reason)?.reason || ''
       } catch {
         detail = text
+      }
+      if (reason === 'API_KEY_SERVICE_BLOCKED') {
+        return res.status(403).json({
+          error: 'Gemini key is blocked from the Generative Language API. In Google Cloud Credentials > API restrictions, allow Generative Language API (generativelanguage.googleapis.com), or temporarily choose Don\'t restrict key.',
+        })
       }
       return res.status(upstream.status).json({ error: `Upstream: ${detail}` })
     }
