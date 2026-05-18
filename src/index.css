@@ -116,174 +116,6 @@ a {
   color: var(--color-text-secondary);
 }
 
-.spin {
-  animation: spin 0.9s linear infinite;
-}
-
-.auth-screen {
-  position: relative;
-  z-index: 1;
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 22px;
-}
-
-.auth-card {
-  width: min(100%, 460px);
-  display: grid;
-  gap: 16px;
-  padding: 24px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-card);
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: var(--shadow-soft);
-}
-
-.auth-card h1 {
-  margin: 0;
-  color: var(--color-text-primary);
-  font-size: clamp(2rem, 8vw, 3.4rem);
-  line-height: 1;
-  font-weight: 900;
-}
-
-.auth-card p {
-  margin: 0;
-  color: var(--color-text-secondary);
-  line-height: 1.55;
-}
-
-.auth-badge {
-  width: fit-content;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: 999px;
-  color: var(--color-accent);
-  background: rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.1);
-  font-size: 0.78rem;
-  font-weight: 900;
-}
-
-.auth-provider-grid,
-.auth-phone-box {
-  display: grid;
-  gap: 10px;
-}
-
-.auth-provider-button {
-  min-height: 46px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-control);
-  color: var(--color-text-primary);
-  background: #ffffff;
-  cursor: pointer;
-  font-weight: 800;
-}
-
-.auth-provider-button:hover {
-  border-color: rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.35);
-}
-
-.auth-provider-button:disabled,
-.mini-action:disabled,
-.account-icon-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.auth-phone-box label {
-  color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  font-weight: 900;
-}
-
-.auth-code-field {
-  overflow: hidden;
-}
-
-.auth-config-box {
-  display: grid;
-  gap: 8px;
-  padding: 14px;
-  border: 1px solid rgba(220, 38, 38, 0.24);
-  border-radius: var(--radius-card);
-  color: #991b1b;
-  background: rgba(254, 242, 242, 0.86);
-  line-height: 1.5;
-}
-
-.auth-config-box code {
-  display: block;
-  padding: 10px;
-  overflow: auto;
-  border-radius: var(--radius-control);
-  color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.78);
-  white-space: pre-line;
-}
-
-.auth-error {
-  padding: 10px 12px;
-  border-radius: var(--radius-control);
-  color: #991b1b;
-  background: rgba(254, 226, 226, 0.78);
-  font-size: 0.86rem;
-  font-weight: 800;
-}
-
-.account-dock {
-  position: fixed;
-  z-index: 45;
-  top: 14px;
-  right: 14px;
-  max-width: min(520px, calc(100vw - 28px));
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: var(--shadow-lift);
-  backdrop-filter: blur(10px);
-}
-
-.account-id,
-.account-sync {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--color-text-secondary);
-  font-size: 0.76rem;
-  font-weight: 900;
-}
-
-.account-id span,
-.account-sync span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.account-id img {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-}
-
-.account-sync[data-error='true'] {
-  color: #b91c1c;
-}
-
-.account-icon-button,
 .mini-action {
   min-height: 32px;
   display: inline-flex;
@@ -298,12 +130,13 @@ a {
   font-weight: 900;
 }
 
-.account-icon-button {
-  width: 32px;
-}
-
 .mini-action {
   padding: 0 10px;
+}
+
+.mini-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .page-shell {
@@ -1961,12 +1794,6 @@ a {
   }
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @media (max-width: 900px) {
   .page-shell {
     padding: 16px 16px 112px;
@@ -2200,21 +2027,6 @@ a {
 
   .theme-switcher { left: 14px; bottom: 14px; }
   .ai-fab { right: 14px; bottom: 14px; }
-
-  .account-dock {
-    top: auto;
-    right: 10px;
-    bottom: 78px;
-    left: 10px;
-  }
-
-  .account-id {
-    flex: 1;
-  }
-
-  .account-sync {
-    display: none;
-  }
 
   .ai-dialog {
     top: 8px;
