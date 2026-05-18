@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, Flag, FlagOff, ListChecks, LoaderCircle, RotateCcw, SkipForward, XCircle } from 'lucide-react'
+import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff, Flag, FlagOff, ListChecks, LoaderCircle, RotateCcw, SkipForward, XCircle } from 'lucide-react'
 import quizMeta from '../data/quizMeta.js'
 import { loadChapterQuestions, loadQuestionsForChapters } from '../data/questionLoaders.js'
 import AskAI from '../components/AskAI.jsx'
 import PageTransition from '../components/PageTransition'
+import QuestionFeedback from '../components/QuestionFeedback.jsx'
 import { AppNav, Button, Card, EmptyState, PageHeader, PageShell, ProgressBar } from '../components/ui.jsx'
 import { loadMistakes, markLastStudy, questionId, saveMistakes, saveProgress } from '../utils/progress.js'
 import { playCorrect, playWrong } from '../utils/sounds.js'
@@ -79,7 +80,8 @@ export default function Quiz() {
   const questionCount = parseInt(searchParams.get('count') || '10', 10)
   const reviewMode = globalReview || searchParams.get('review') === 'mistakes'
   const loadKey = `${subjectId}:${chapterId}:${reviewMode}:${globalReview}:${questionCount}`
-  const [questionState, setQuestionState] = useState({ key: '', questions: [] })
+  const [questionState, setQuestionState] = useState({ key: '', questions: [], error: '' })
+  const [retryNonce, setRetryNonce] = useState(0)
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState({})
   const [flagged, setFlagged] = useState(() => new Set())
@@ -92,20 +94,29 @@ export default function Quiz() {
     createQuestionSet({ subjectId, chapterId, reviewMode, globalReview, questionCount })
       .then((next) => {
         if (cancelled) return
-        setQuestionState({ key: loadKey, questions: next })
+        setQuestionState({ key: loadKey, questions: next, error: '' })
         setAnswers({})
         setFlagged(new Set())
         setShowReview(false)
         setCurrentQuestion(0)
         if (!globalReview && subject && chapter) markLastStudy(subjectId, chapterId)
       })
+      .catch((error) => {
+        if (cancelled) return
+        setQuestionState({
+          key: loadKey,
+          questions: [],
+          error: error?.message || 'Could not load questions.',
+        })
+      })
 
     return () => {
       cancelled = true
     }
-  }, [chapter, chapterId, globalReview, loadKey, questionCount, reviewMode, subject, subjectId])
+  }, [chapter, chapterId, globalReview, loadKey, questionCount, retryNonce, reviewMode, subject, subjectId])
 
   const loading = questionState.key !== loadKey
+  const loadError = !loading ? questionState.error : ''
   const questions = useMemo(() => (loading ? EMPTY_QUESTIONS : questionState.questions), [loading, questionState.questions])
   const total = questions.length
   const question = questions[currentQuestion]
@@ -254,6 +265,22 @@ export default function Quiz() {
     )
   }
 
+  if (loadError) {
+    return (
+      <PageTransition>
+        <PageShell size="narrow">
+          <AppNav backTo={backTo} />
+          <EmptyState
+            icon={AlertCircle}
+            title="Questions could not load"
+            description={loadError}
+            action={<Button onClick={() => setRetryNonce((value) => value + 1)}>Try again</Button>}
+          />
+        </PageShell>
+      </PageTransition>
+    )
+  }
+
   if (!question) {
     return (
       <PageTransition>
@@ -375,6 +402,8 @@ export default function Quiz() {
                 <strong>Why: </strong>{question.explanation}
               </div>
             )}
+
+            {hasAnswered && <QuestionFeedback question={question} />}
 
             <div className="quiz-footer quiz-footer-split">
               <Button variant="secondary" onClick={goNext} icon={SkipForward}>

@@ -3,6 +3,8 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import BackgroundArt from './components/BackgroundArt'
 import MobileNav from './components/MobileNav.jsx'
+import AuthGate from './components/AuthGate.jsx'
+import AccountDock from './components/AccountDock.jsx'
 
 const Home = lazy(() => import('./pages/Home'))
 const ChapterSelect = lazy(() => import('./pages/ChapterSelect'))
@@ -25,23 +27,26 @@ function App() {
   return (
     <>
       <BackgroundArt />
-      <Suspense fallback={<RouteFallback />}>
-        <AnimatePresence mode="wait" initial={false}>
-          <Routes location={location} key={routeKey}>
-            <Route path="/" element={<Home />} />
-            <Route path="/subject/:subjectId" element={<ChapterSelect />} />
-            <Route path="/chapter/:subjectId/:chapterId" element={<ChapterLanding />} />
-            <Route path="/quiz/:subjectId/:chapterId" element={<Quiz />} />
-            <Route path="/results/:subjectId/:chapterId" element={<Results />} />
-            <Route path="/summary/:subjectId/:chapterId" element={<Summary />} />
-            <Route path="/video/:subjectId/:chapterId" element={<VideoPlayer />} />
-            <Route path="/stats" element={<Stats />} />
-            <Route path="/review" element={<Review />} />
-            <Route path="*" element={<Home />} />
-          </Routes>
-        </AnimatePresence>
-      </Suspense>
-      <MobileNav />
+      <AuthGate>
+        <Suspense fallback={<RouteFallback />}>
+          <AnimatePresence mode="wait" initial={false}>
+            <Routes location={location} key={routeKey}>
+              <Route path="/" element={<Home />} />
+              <Route path="/subject/:subjectId" element={<ChapterSelect />} />
+              <Route path="/chapter/:subjectId/:chapterId" element={<ChapterLanding />} />
+              <Route path="/quiz/:subjectId/:chapterId" element={<Quiz />} />
+              <Route path="/results/:subjectId/:chapterId" element={<Results />} />
+              <Route path="/summary/:subjectId/:chapterId" element={<Summary />} />
+              <Route path="/video/:subjectId/:chapterId" element={<VideoPlayer />} />
+              <Route path="/stats" element={<Stats />} />
+              <Route path="/review" element={<Review />} />
+              <Route path="*" element={<Home />} />
+            </Routes>
+          </AnimatePresence>
+        </Suspense>
+        <MobileNav />
+        <AccountDock />
+      </AuthGate>
     </>
   )
 }

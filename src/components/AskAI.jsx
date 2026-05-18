@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AlertCircle, Bot, ImagePlus, Send, Sparkles, Trash2, User, X } from 'lucide-react'
 import { Button, IconButton } from './ui.jsx'
+import { canUseAi, getAiQuotaStatus, recordAiUse } from '../utils/aiQuota.js'
 
 const STORAGE_KEY = 'learnflow-ai-chat'
 const MAX_IMAGES = 3
@@ -153,6 +154,7 @@ export default function AskAI({ defaultContext = '', inline = false, label = 'As
   const [context, setContext] = useState(defaultContext)
   const [messages, setMessages] = useState(loadHistory)
   const [attachments, setAttachments] = useState([])
+  const [quota, setQuota] = useState(getAiQuotaStatus)
   const [loading, setLoading] = useState(false)
   const [preparingImages, setPreparingImages] = useState(false)
   const [error, setError] = useState(null)
@@ -185,6 +187,13 @@ export default function AskAI({ defaultContext = '', inline = false, label = 'As
   const handleSend = async () => {
     const text = input.trim()
     if ((!text && attachments.length === 0) || loading || preparingImages) return
+    const hasImages = attachments.length > 0
+    const allowed = canUseAi(hasImages)
+    if (!allowed.ok) {
+      setError(allowed.reason)
+      setQuota(getAiQuotaStatus())
+      return
+    }
     setError(null)
     setInput('')
     setAttachments([])
@@ -220,6 +229,7 @@ export default function AskAI({ defaultContext = '', inline = false, label = 'As
         setError(data.error || `Ask AI is unavailable right now (${response.status}).`)
         return
       }
+      setQuota(recordAiUse(hasImages))
       setMessages((current) => [
         ...current,
         { role: 'assistant', content: data.answer || 'I did not get a usable answer.', id: makeId() },
@@ -340,6 +350,10 @@ export default function AskAI({ defaultContext = '', inline = false, label = 'As
                     placeholder="Context, e.g. Maths / Polynomials"
                   />
                 </div>
+                <p className="ai-quota">
+                  {quota.requestsLeft}/{quota.requestLimit} AI asks left today
+                  {quota.imageRequestsLeft < quota.imageLimit ? ` / ${quota.imageRequestsLeft} image asks left` : ''}
+                </p>
               </div>
 
               <div className="ai-messages">

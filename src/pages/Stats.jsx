@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { BarChart3, BookOpenCheck, Layers, Target } from 'lucide-react'
 import quizMeta from '../data/quizMeta.js'
 import PageTransition from '../components/PageTransition'
+import NotesLibrary from '../components/NotesLibrary.jsx'
+import QuestionReports from '../components/QuestionReports.jsx'
 import StorageTools from '../components/StorageTools.jsx'
 import { AppNav, Card, Metric, PageHeader, PageShell, ProgressBar } from '../components/ui.jsx'
 import { loadMistakes, loadProgress } from '../utils/progress.js'
@@ -100,6 +102,11 @@ export default function Stats() {
               color={getSubjectColor(subjectId)}
             />
           ))}
+        </section>
+
+        <section className="stats-tools-grid mt-4">
+          <NotesLibrary />
+          <QuestionReports />
         </section>
 
         <section className="mt-4">

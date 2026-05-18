@@ -13,6 +13,41 @@ const MODEL = 'gemini-2.5-flash'
 const MAX_IMAGES_PER_MESSAGE = 3
 const MAX_IMAGE_BYTES = 1_500_000
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const RATE_WINDOW_MS = 6 * 60 * 60 * 1000
+const MAX_REQUESTS_PER_WINDOW = 40
+
+const rateBuckets = globalThis.__learnflowRateBuckets || new Map()
+globalThis.__learnflowRateBuckets = rateBuckets
+
+function rateLimitKey(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '')
+  return forwarded.split(',')[0].trim() || req.socket?.remoteAddress || 'unknown'
+}
+
+function checkRateLimit(req) {
+  const now = Date.now()
+  const key = rateLimitKey(req)
+  const bucket = rateBuckets.get(key) || { count: 0, resetAt: now + RATE_WINDOW_MS }
+
+  if (bucket.resetAt <= now) {
+    bucket.count = 0
+    bucket.resetAt = now + RATE_WINDOW_MS
+  }
+
+  bucket.count += 1
+  rateBuckets.set(key, bucket)
+
+  if (rateBuckets.size > 500) {
+    for (const [entryKey, entry] of rateBuckets) {
+      if (entry.resetAt <= now) rateBuckets.delete(entryKey)
+    }
+  }
+
+  return {
+    allowed: bucket.count <= MAX_REQUESTS_PER_WINDOW,
+    resetAt: bucket.resetAt,
+  }
+}
 
 function imageToPart(image) {
   const mimeType = typeof image?.mimeType === 'string' ? image.mimeType : ''
@@ -37,6 +72,13 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const rate = checkRateLimit(req)
+  if (!rate.allowed) {
+    return res.status(429).json({
+      error: `AI request limit reached. Try again after ${new Date(rate.resetAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}.`,
+    })
   }
 
   const apiKey = process.env.GEMINI_API_KEY

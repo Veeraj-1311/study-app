@@ -26,9 +26,9 @@ const saveAll = (notes) => {
 
 const loadNoteRecord = (subjectId, chapterId) => {
   const item = loadAll()[keyFor(subjectId, chapterId)]
-  if (!item) return { text: '', pinned: false }
-  if (typeof item === 'string') return { text: item, pinned: false }
-  return { text: item.text || '', pinned: Boolean(item.pinned) }
+  if (!item) return { text: '', pinned: false, updatedAt: null }
+  if (typeof item === 'string') return { text: item, pinned: false, updatedAt: null }
+  return { text: item.text || '', pinned: Boolean(item.pinned), updatedAt: item.updatedAt || null }
 }
 
 export default function ChapterNotes({ subjectId, chapterId }) {
@@ -49,7 +49,7 @@ export default function ChapterNotes({ subjectId, chapterId }) {
     debounceRef.current = setTimeout(() => {
       const all = loadAll()
       const key = keyFor(subjectId, chapterId)
-      if (value.trim() || pinned) all[key] = { text: value, pinned }
+      if (value.trim() || pinned) all[key] = { text: value, pinned, updatedAt: Date.now() }
       else delete all[key]
       saveAll(all)
       setSaved(true)

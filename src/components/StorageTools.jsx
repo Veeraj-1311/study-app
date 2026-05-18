@@ -9,6 +9,7 @@ const RESET_GROUPS = [
   { label: 'Notes', keys: ['learnflow-chapter-notes'] },
   { label: 'Tasks', keys: ['learnflow-todos'] },
   { label: 'Videos', keys: ['learnflow-videos'] },
+  { label: 'Reports', keys: ['learnflow-question-feedback'] },
   { label: 'Theme', keys: ['learnflow-theme', 'learnflow-saved-themes'] },
 ]
 

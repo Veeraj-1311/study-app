@@ -6,6 +6,7 @@ export const BACKUP_KEYS = [
   'learnflow-todos',
   'learnflow-videos',
   'learnflow-quiz-count',
+  'learnflow-question-feedback',
   'learnflow-theme',
   'learnflow-saved-themes',
 ]
@@ -23,6 +24,14 @@ export function createBackup() {
     createdAt: new Date().toISOString(),
     data,
   }
+}
+
+export function hasBackupData(backup) {
+  return Boolean(backup?.data && Object.keys(backup.data).length > 0)
+}
+
+export function backupSignature(backup) {
+  return JSON.stringify(backup?.data || {})
 }
 
 export function downloadBackup() {
@@ -47,7 +56,10 @@ export async function readBackupFile(file) {
   return parsed
 }
 
-export function restoreBackup(backup) {
+export function restoreBackup(backup, options = {}) {
+  if (options.clearMissing) {
+    BACKUP_KEYS.forEach((key) => localStorage.removeItem(key))
+  }
   Object.entries(backup.data).forEach(([key, value]) => {
     if (!BACKUP_KEYS.includes(key)) return
     if (typeof value === 'string') localStorage.setItem(key, value)
