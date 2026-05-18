@@ -9,7 +9,7 @@ const SYSTEM_PROMPT = `You are a friendly, patient study tutor helping a student
 - Keep responses focused. No filler intros like "Great question!". Get to the point.
 - Use light markdown if it helps (short bullet lists, **bold** for key terms). Avoid huge headers.`
 
-const MODEL = 'gemini-2.0-flash'
+const MODEL = 'gemini-2.5-flash'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
       }
       if (reason === 'API_KEY_SERVICE_BLOCKED') {
         return res.status(403).json({
-          error: 'Gemini key is blocked from the Generative Language API. In Google Cloud Credentials > API restrictions, allow Generative Language API (generativelanguage.googleapis.com), or temporarily choose Don\'t restrict key.',
+          error: 'AI key is blocked from the Generative Language API. In Google Cloud Credentials > API restrictions, allow Generative Language API, or temporarily choose Don\'t restrict key.',
         })
       }
       return res.status(upstream.status).json({ error: `Upstream: ${detail}` })
