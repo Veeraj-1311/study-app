@@ -1,9 +1,75 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { AlertCircle, Bot, Send, Sparkles, Trash2, User, X } from 'lucide-react'
+import { AlertCircle, Bot, ImagePlus, Send, Sparkles, Trash2, User, X } from 'lucide-react'
 import { Button, IconButton } from './ui.jsx'
 
 const STORAGE_KEY = 'learnflow-ai-chat'
+const MAX_IMAGES = 3
+const MAX_IMAGE_BYTES = 1_200_000
+const IMAGE_MIME_TYPE = 'image/jpeg'
+
+const makeId = () => crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`
+
+const dataUrlBytes = (dataUrl) => {
+  const base64 = dataUrl.split(',')[1] || ''
+  return Math.ceil((base64.length * 3) / 4)
+}
+
+const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(reader.result)
+  reader.onerror = () => reject(new Error(`${file.name} could not be read.`))
+  reader.readAsDataURL(file)
+})
+
+const loadImage = (src, name) => new Promise((resolve, reject) => {
+  const image = new Image()
+  image.onload = () => resolve(image)
+  image.onerror = () => reject(new Error(`${name} could not be loaded as an image.`))
+  image.src = src
+})
+
+async function prepareImage(file) {
+  if (!file.type.startsWith('image/')) {
+    throw new Error(`${file.name} is not an image.`)
+  }
+
+  const source = await readFileAsDataUrl(file)
+  const image = await loadImage(source, file.name)
+  const longestSide = Math.max(image.naturalWidth, image.naturalHeight)
+  const sideLimits = [1600, 1280, 960]
+  const qualities = [0.9, 0.82, 0.74, 0.66]
+
+  for (const maxSide of sideLimits) {
+    const scale = Math.min(1, maxSide / longestSide)
+    const width = Math.max(1, Math.round(image.naturalWidth * scale))
+    const height = Math.max(1, Math.round(image.naturalHeight * scale))
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, width, height)
+    context.imageSmoothingQuality = 'high'
+    context.drawImage(image, 0, 0, width, height)
+
+    for (const quality of qualities) {
+      const dataUrl = canvas.toDataURL(IMAGE_MIME_TYPE, quality)
+      if (dataUrlBytes(dataUrl) <= MAX_IMAGE_BYTES) {
+        return {
+          id: makeId(),
+          name: file.name,
+          mimeType: IMAGE_MIME_TYPE,
+          data: dataUrl.split(',')[1] || '',
+          dataUrl,
+          size: dataUrlBytes(dataUrl),
+        }
+      }
+    }
+  }
+
+  throw new Error(`${file.name} is too large. Try a closer crop or screenshot.`)
+}
 
 const loadHistory = () => {
   try {
@@ -15,11 +81,32 @@ const loadHistory = () => {
 
 const saveHistory = (messages) => {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+    const compact = messages.map((message) => ({
+      ...message,
+      attachments: message.attachments?.map(({ id, name, mimeType, size }) => ({ id, name, mimeType, size })),
+    }))
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(compact))
   } catch {
     return false
   }
   return true
+}
+
+function MessageImages({ attachments = [] }) {
+  if (!attachments.length) return null
+  return (
+    <div className="ai-message-images">
+      {attachments.map((attachment) => (
+        <div className="ai-message-image" key={attachment.id || attachment.name}>
+          {attachment.dataUrl ? (
+            <img src={attachment.dataUrl} alt={attachment.name || 'Uploaded question'} />
+          ) : (
+            <span>{attachment.name || 'Image attached'}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function FormattedAnswer({ text }) {
@@ -64,9 +151,12 @@ export default function AskAI({ defaultContext = '', inline = false }) {
   const [input, setInput] = useState('')
   const [context, setContext] = useState(defaultContext)
   const [messages, setMessages] = useState(loadHistory)
+  const [attachments, setAttachments] = useState([])
   const [loading, setLoading] = useState(false)
+  const [preparingImages, setPreparingImages] = useState(false)
   const [error, setError] = useState(null)
   const inputRef = useRef(null)
+  const fileInputRef = useRef(null)
   const listEndRef = useRef(null)
 
   useEffect(() => {
@@ -93,10 +183,20 @@ export default function AskAI({ defaultContext = '', inline = false }) {
 
   const handleSend = async () => {
     const text = input.trim()
-    if (!text || loading) return
+    if ((!text && attachments.length === 0) || loading || preparingImages) return
     setError(null)
     setInput('')
-    const next = [...messages, { role: 'user', content: text, id: crypto.randomUUID?.() || `${Date.now()}` }]
+    setAttachments([])
+    const outgoingAttachments = attachments
+    const next = [
+      ...messages,
+      {
+        role: 'user',
+        content: text || 'Please explain the uploaded image.',
+        attachments: outgoingAttachments,
+        id: makeId(),
+      },
+    ]
     setMessages(next)
     setLoading(true)
     try {
@@ -104,7 +204,13 @@ export default function AskAI({ defaultContext = '', inline = false }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: next.map(({ role, content }) => ({ role, content })),
+          messages: next.map(({ role, content, attachments: messageAttachments }) => ({
+            role,
+            content,
+            images: role === 'user'
+              ? messageAttachments?.filter((image) => image.data).map(({ data, mimeType, name }) => ({ data, mimeType, name }))
+              : undefined,
+          })),
           context: context.trim(),
         }),
       })
@@ -115,7 +221,7 @@ export default function AskAI({ defaultContext = '', inline = false }) {
       }
       setMessages((current) => [
         ...current,
-        { role: 'assistant', content: data.answer || 'I did not get a usable answer.', id: crypto.randomUUID?.() || `${Date.now()}-ai` },
+        { role: 'assistant', content: data.answer || 'I did not get a usable answer.', id: makeId() },
       ])
     } catch (requestError) {
       setError(requestError?.message || 'Network error. Try again in a moment.')
@@ -126,8 +232,42 @@ export default function AskAI({ defaultContext = '', inline = false }) {
 
   const handleClear = () => {
     setMessages([])
+    setAttachments([])
     setError(null)
   }
+
+  const handleFilesSelected = async (event) => {
+    const selected = Array.from(event.target.files || [])
+    event.target.value = ''
+    if (!selected.length) return
+
+    const slots = MAX_IMAGES - attachments.length
+    if (slots <= 0) {
+      setError(`Attach up to ${MAX_IMAGES} images at once.`)
+      return
+    }
+
+    const files = selected.slice(0, slots)
+    setError(selected.length > slots ? `Only the first ${slots} image${slots === 1 ? '' : 's'} were attached.` : null)
+    setPreparingImages(true)
+    try {
+      const prepared = []
+      for (const file of files) {
+        prepared.push(await prepareImage(file))
+      }
+      setAttachments((current) => [...current, ...prepared])
+    } catch (imageError) {
+      setError(imageError?.message || 'That image could not be attached.')
+    } finally {
+      setPreparingImages(false)
+    }
+  }
+
+  const removeAttachment = (id) => {
+    setAttachments((current) => current.filter((attachment) => attachment.id !== id))
+  }
+
+  const canSend = (input.trim() || attachments.length > 0) && !loading && !preparingImages
 
   return (
     <>
@@ -196,7 +336,7 @@ export default function AskAI({ defaultContext = '', inline = false }) {
 
               <div className="ai-messages">
                 {messages.length === 0 && !loading && !error && (
-                  <div className="empty-state" style={{ minHeight: 260 }}>
+                  <div className="empty-state ai-empty">
                     <div className="empty-icon">
                       <Sparkles size={22} />
                     </div>
@@ -218,9 +358,14 @@ export default function AskAI({ defaultContext = '', inline = false }) {
                         {message.role === 'user' ? <User size={15} /> : <Bot size={15} />}
                       </span>
                       <div className="ai-bubble">
-                        {message.role === 'assistant'
-                          ? <FormattedAnswer text={message.content} />
-                          : <p>{message.content}</p>}
+                        {message.role === 'assistant' ? (
+                          <FormattedAnswer text={message.content} />
+                        ) : (
+                          <>
+                            <p>{message.content}</p>
+                            <MessageImages attachments={message.attachments} />
+                          </>
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -244,7 +389,38 @@ export default function AskAI({ defaultContext = '', inline = false }) {
               </div>
 
               <div className="ai-composer">
+                {attachments.length > 0 && (
+                  <div className="ai-attachments" aria-label="Attached images">
+                    {attachments.map((attachment) => (
+                      <div className="ai-attachment" key={attachment.id}>
+                        <img src={attachment.dataUrl} alt={attachment.name} />
+                        <span>{attachment.name}</span>
+                        <IconButton
+                          label={`Remove ${attachment.name}`}
+                          icon={X}
+                          className="ai-remove-attachment"
+                          onClick={() => removeAttachment(attachment.id)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="field-shell ai-composer-field">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="ai-file-input"
+                    onChange={handleFilesSelected}
+                  />
+                  <IconButton
+                    label="Attach image"
+                    icon={ImagePlus}
+                    className="ai-attach-button"
+                    disabled={loading || preparingImages || attachments.length >= MAX_IMAGES}
+                    onClick={() => fileInputRef.current?.click()}
+                  />
                   <textarea
                     ref={inputRef}
                     className="ai-input"
@@ -259,7 +435,7 @@ export default function AskAI({ defaultContext = '', inline = false }) {
                     placeholder="Type your doubt..."
                     rows={1}
                   />
-                  <IconButton label="Send message" icon={Send} disabled={!input.trim() || loading} onClick={handleSend} />
+                  <IconButton label="Send message" icon={Send} disabled={!canSend} onClick={handleSend} />
                 </div>
               </div>
             </motion.div>

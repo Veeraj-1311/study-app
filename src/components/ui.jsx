@@ -72,9 +72,9 @@ export function Button({ to, href, variant = 'primary', size = 'md', icon: Icon,
   return <button className={classes} {...props}>{content}</button>
 }
 
-export function IconButton({ label, icon: Icon, className = '', ...props }) {
+export function IconButton({ label, icon: Icon, className = '', type = 'button', ...props }) {
   return (
-    <button className={`icon-button ${className}`} aria-label={label} title={label} {...props}>
+    <button type={type} className={`icon-button ${className}`} aria-label={label} title={label} {...props}>
       <Icon size={17} />
     </button>
   )

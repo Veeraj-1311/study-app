@@ -10,6 +10,28 @@ const SYSTEM_PROMPT = `You are a friendly, patient study tutor helping a student
 - Use light markdown if it helps (short bullet lists, **bold** for key terms). Avoid huge headers.`
 
 const MODEL = 'gemini-2.5-flash'
+const MAX_IMAGES_PER_MESSAGE = 3
+const MAX_IMAGE_BYTES = 1_500_000
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+function imageToPart(image) {
+  const mimeType = typeof image?.mimeType === 'string' ? image.mimeType : ''
+  const data = String(image?.data || '').replace(/^data:[^;]+;base64,/, '')
+
+  if (!ALLOWED_IMAGE_TYPES.has(mimeType)) {
+    throw new Error('Only JPEG, PNG, and WebP images are supported.')
+  }
+  if (!data || !/^[a-zA-Z0-9+/=]+$/.test(data)) {
+    throw new Error('Image data is invalid.')
+  }
+
+  const bytes = Math.ceil((data.length * 3) / 4)
+  if (bytes > MAX_IMAGE_BYTES) {
+    throw new Error('Image is too large. Try a closer crop or screenshot.')
+  }
+
+  return { inlineData: { mimeType, data } }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -32,10 +54,23 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'messages array required' })
   }
 
-  const contents = messages.slice(-12).map((message) => ({
-    role: message.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: String(message.content || '').slice(0, 4000) }],
-  }))
+  let contents
+  try {
+    contents = messages.slice(-12).map((message) => {
+      const parts = [{ text: String(message.content || '').slice(0, 4000) }]
+      const images = message.role === 'assistant' ? [] : (Array.isArray(message.images) ? message.images : [])
+      if (images.length > MAX_IMAGES_PER_MESSAGE) {
+        throw new Error(`Attach up to ${MAX_IMAGES_PER_MESSAGE} images per message.`)
+      }
+      images.forEach((image) => parts.push(imageToPart(image)))
+      return {
+        role: message.role === 'assistant' ? 'model' : 'user',
+        parts,
+      }
+    })
+  } catch (validationError) {
+    return res.status(400).json({ error: validationError?.message || 'Invalid message payload.' })
+  }
 
   const systemText = context
     ? `${SYSTEM_PROMPT}\n\nThe student is currently studying: ${context}`

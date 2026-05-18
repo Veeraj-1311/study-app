@@ -900,15 +900,14 @@ a {
 .ai-dialog {
   position: fixed;
   z-index: 51;
-  left: 50%;
-  top: 50%;
+  inset: 14px;
+  margin: auto;
   width: min(680px, calc(100dvw - 28px));
   height: min(760px, calc(100dvh - 28px));
   max-height: calc(100dvh - 28px);
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   overflow: hidden;
-  transform: translate(-50%, -50%);
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
   background: var(--color-bg-card);
@@ -974,6 +973,11 @@ a {
   align-content: start;
   gap: 14px;
   padding: 16px;
+  overscroll-behavior: contain;
+}
+
+.ai-empty {
+  min-height: 210px;
 }
 
 .ai-message {
@@ -995,6 +999,7 @@ a {
 
 .ai-bubble {
   min-width: 0;
+  max-width: min(100%, 560px);
   overflow-wrap: anywhere;
   color: var(--color-text-primary);
   font-size: 0.92rem;
@@ -1005,14 +1010,104 @@ a {
   margin: 0 0 8px;
 }
 
+.ai-message-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+  max-width: 360px;
+}
+
+.ai-message-image {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.ai-message-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+  object-fit: contain;
+}
+
+.ai-message-image span {
+  display: block;
+  padding: 10px;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .ai-composer {
   border-top: 1px solid var(--color-border-subtle);
   border-bottom: 0;
+  display: grid;
+  gap: 10px;
 }
 
 .ai-composer-field {
   align-items: flex-end;
   padding-right: 4px;
+}
+
+.ai-file-input {
+  display: none;
+}
+
+.ai-attach-button,
+.ai-composer-field .icon-button {
+  flex: 0 0 auto;
+}
+
+.ai-attachments {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.ai-attachment {
+  position: relative;
+  width: 104px;
+  min-width: 104px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.ai-attachment img {
+  display: block;
+  width: 100%;
+  height: 70px;
+  object-fit: cover;
+}
+
+.ai-attachment span {
+  display: block;
+  padding: 6px 7px;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-remove-attachment {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  color: #111827;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 18px -12px rgba(17, 24, 39, 0.8);
 }
 
 .ai-input {
@@ -1134,14 +1229,11 @@ a {
   .ai-fab { right: 14px; bottom: 14px; }
 
   .ai-dialog {
-    left: 10px;
-    right: 10px;
-    top: 10px;
-    bottom: 10px;
+    inset: 8px;
+    margin: auto;
     width: auto;
     height: auto;
     max-height: none;
-    transform: none;
   }
 
   .ai-header {
@@ -1162,6 +1254,24 @@ a {
   .ai-composer {
     padding-left: 12px;
     padding-right: 12px;
+  }
+
+  .ai-empty {
+    min-height: 180px;
+  }
+
+  .ai-message-images {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+
+  .ai-attachment {
+    width: 88px;
+    min-width: 88px;
+  }
+
+  .ai-attachment img {
+    height: 58px;
   }
 }
 
