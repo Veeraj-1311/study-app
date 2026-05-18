@@ -170,7 +170,7 @@ export default function AskAI({ defaultContext = '', inline = false }) {
                   </span>
                   <div className="ai-title-copy">
                     <h2>Ask AI</h2>
-                    <p>Gemini-powered tutor, once the API key is added.</p>
+                    <p>Gemini-powered tutor for quick explanations.</p>
                   </div>
                 </div>
                 <div className="ai-header-actions">

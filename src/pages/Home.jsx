@@ -11,7 +11,6 @@ import {
   Languages,
   Sparkles,
   Target,
-  Timer,
 } from 'lucide-react'
 import quizData from '../data/quizData.js'
 import AskAI from '../components/AskAI'
@@ -21,7 +20,6 @@ import ThemeSwitcher from '../components/ThemeSwitcher'
 import { AppNav, Button, Card, Metric, PageHeader, PageShell, ProgressBar } from '../components/ui.jsx'
 import { loadMistakes, loadProgress } from '../utils/progress.js'
 import { playClick } from '../utils/sounds.js'
-import useStreak from '../hooks/useStreak.js'
 import { useTheme } from '../hooks/useTheme.js'
 
 const iconMap = { Calculator, FlaskConical, Globe, BookOpen, Languages, BrainCircuit }
@@ -77,7 +75,6 @@ export default function Home() {
   const mistakes = loadMistakes()
   const subjects = Object.entries(quizData)
   const greeting = greetingFor(new Date().getHours())
-  const { todayMinutes, progress: streakProgress, streak } = useStreak()
 
   let totalChapters = 0
   let completedChapters = 0
@@ -125,7 +122,7 @@ export default function Home() {
         <div className="quick-stats">
           <Metric icon={BookOpen} label="Chapters done" value={`${completedChapters}/${totalChapters}`} />
           <Metric icon={Target} label="Accuracy" value={`${accuracy}%`} color="#16a34a" />
-          <Metric icon={Timer} label="Today" value={`${todayMinutes}m`} color="#d97706" />
+          <Metric icon={BarChart3} label="To review" value={totalMistakes} color="#dc2626" />
         </div>
 
         <div className="dashboard-grid">
@@ -146,23 +143,6 @@ export default function Home() {
           </section>
 
           <aside className="home-panel">
-            <Card className="p-5">
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <div>
-                  <h2 className="text-lg font-extrabold m-0">Daily rhythm</h2>
-                  <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                    {streak > 0 ? `${streak} day streak` : 'Build a 30 minute study day.'}
-                  </p>
-                </div>
-                <Sparkles size={20} style={{ color: 'var(--color-accent)' }} />
-              </div>
-              <ProgressBar value={Math.round(streakProgress * 100)} label={`${Math.round(streakProgress * 100)}%`} />
-              {totalMistakes > 0 && (
-                <p className="mt-4 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                  You have <strong style={{ color: '#d97706' }}>{totalMistakes}</strong> saved mistakes across subjects.
-                </p>
-              )}
-            </Card>
             <TaskList />
           </aside>
         </div>
