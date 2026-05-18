@@ -124,9 +124,14 @@ export default function Quiz() {
   const aiDraft = useMemo(() => {
     if (!question) return ''
     const options = question.options.map((option, index) => `${String.fromCharCode(65 + index)}. ${option}`).join('\n')
-    const answerLine = hasAnswered
-      ? `\nI selected ${String.fromCharCode(65 + currentAnswer.selected)}. ${currentAnswer.isCorrect ? 'It was correct.' : `The correct answer is ${String.fromCharCode(65 + question.correct)}.`}`
-      : ''
+    let answerLine = ''
+    if (hasAnswered) {
+      const selectedKey = String.fromCharCode(65 + currentAnswer.selected)
+      const correctKey = String.fromCharCode(65 + question.correct)
+      answerLine = currentAnswer.isCorrect
+        ? `\nI selected ${selectedKey}: ${question.options[currentAnswer.selected]}. It was correct. Explain the idea so I remember it.`
+        : `\nI selected ${selectedKey}: ${question.options[currentAnswer.selected]}, but the correct answer is ${correctKey}: ${question.options[question.correct]}. Explain why my selected option is wrong and why the correct option is right.`
+    }
     return `Explain this question clearly:\n\n${question.question}\n\nOptions:\n${options}${answerLine}\n\nExplanation from the app: ${question.explanation || 'Not available'}`
   }, [currentAnswer, hasAnswered, question])
 

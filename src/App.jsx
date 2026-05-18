@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import BackgroundArt from './components/BackgroundArt'
+import MobileNav from './components/MobileNav.jsx'
 
 const Home = lazy(() => import('./pages/Home'))
 const ChapterSelect = lazy(() => import('./pages/ChapterSelect'))
@@ -40,6 +41,7 @@ function App() {
           </Routes>
         </AnimatePresence>
       </Suspense>
+      <MobileNav />
     </>
   )
 }

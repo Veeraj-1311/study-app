@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { BookOpen, FileText, HelpCircle, Search, X } from 'lucide-react'
 import quizMeta from '../data/quizMeta.js'
 import { searchQuestionBank } from '../data/questionLoaders.js'
@@ -45,8 +45,19 @@ const iconFor = {
 export default function StudySearch() {
   const [query, setQuery] = useState('')
   const [asyncResults, setAsyncResults] = useState([])
+  const [searchParams] = useSearchParams()
+  const inputRef = useRef(null)
   const baseResults = useMemo(() => baseResultsFor(query), [query])
   const hasQuery = query.trim().length >= 2
+
+  useEffect(() => {
+    if (searchParams.get('search') === '1') {
+      window.setTimeout(() => {
+        inputRef.current?.focus()
+        inputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      }, 80)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     let cancelled = false
@@ -109,6 +120,7 @@ export default function StudySearch() {
       <div className="field-shell study-search-field">
         <Search size={17} style={{ color: 'var(--color-text-muted)' }} />
         <input
+          ref={inputRef}
           className="text-input"
           value={query}
           onChange={(event) => setQuery(event.target.value)}

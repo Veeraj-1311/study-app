@@ -42,6 +42,8 @@ function SubjectCard({ subjectId, subject, progress, mistakes, index }) {
   const total = subject.chapters.length
   const percent = total ? Math.round((completed / total) * 100) : 0
   const mistakeCount = Object.values(mistakes[subjectId] || {}).reduce((sum, item) => sum + item.length, 0)
+  const nextChapter = subject.chapters.find((chapter) => subjectProgress[chapter.id]?.status === 'in_progress')
+    || subject.chapters.find((chapter) => subjectProgress[chapter.id]?.status !== 'completed')
 
   return (
     <motion.div
@@ -58,6 +60,9 @@ function SubjectCard({ subjectId, subject, progress, mistakes, index }) {
         </div>
         <h3>{subject.name}</h3>
         <p>{total} chapters / {completed} completed</p>
+        <p className="subject-next">
+          {nextChapter ? `Next: ${nextChapter.name}` : 'All chapters completed'}
+        </p>
         <div className="mt-5">
           <ProgressBar value={percent} color={color} label={`${percent}%`} />
         </div>

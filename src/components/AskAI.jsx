@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AlertCircle, Bot, ImagePlus, Send, Sparkles, Trash2, User, X } from 'lucide-react'
 import { Button, IconButton } from './ui.jsx'
@@ -146,7 +147,7 @@ function TypingDots() {
   )
 }
 
-export default function AskAI({ defaultContext = '', inline = false, label = 'Ask AI', draft = '' }) {
+export default function AskAI({ defaultContext = '', inline = false, label = 'Ask AI', draft = '', triggerClassName = '' }) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [context, setContext] = useState(defaultContext)
@@ -280,7 +281,7 @@ export default function AskAI({ defaultContext = '', inline = false, label = 'As
       <div className={inline ? 'inline-tool' : 'ai-fab'}>
         <motion.button
           type="button"
-          className={inline ? 'button button-secondary button-sm' : 'floating-button'}
+          className={triggerClassName || (inline ? 'button button-secondary button-sm' : 'floating-button')}
           onClick={openDialog}
           whileTap={{ scale: 0.96 }}
           aria-label={label}
@@ -290,7 +291,8 @@ export default function AskAI({ defaultContext = '', inline = false, label = 'As
         </motion.button>
       </div>
 
-      <AnimatePresence>
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
         {open && (
           <>
             <motion.div
@@ -447,7 +449,9 @@ export default function AskAI({ defaultContext = '', inline = false, label = 'As
             </motion.div>
           </>
         )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   )
 }

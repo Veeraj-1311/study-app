@@ -5,7 +5,7 @@ import quizMeta from '../data/quizMeta.js'
 import { loadQuestionsForChapters } from '../data/questionLoaders.js'
 import PageTransition from '../components/PageTransition'
 import { AppNav, Button, Card, EmptyState, PageHeader, PageShell } from '../components/ui.jsx'
-import { loadMistakes, questionId } from '../utils/progress.js'
+import { getSmartStudyTarget, loadMistakes, loadProgress, questionId } from '../utils/progress.js'
 import { useTheme } from '../hooks/useTheme.js'
 
 function collectMistakeChapters(mistakes) {
@@ -20,6 +20,7 @@ function collectMistakeChapters(mistakes) {
 
 export default function Review() {
   const [mistakes] = useState(loadMistakes)
+  const [progress] = useState(loadProgress)
   const mistakeChapters = useMemo(() => collectMistakeChapters(mistakes), [mistakes])
   const loadKey = JSON.stringify(mistakeChapters.map((item) => [item.subjectId, item.chapterId, item.ids]))
   const [reviewState, setReviewState] = useState({ key: '', items: [] })
@@ -58,6 +59,8 @@ export default function Review() {
   const loading = reviewState.key !== loadKey
   const items = loading ? [] : reviewState.items
   const subjects = Object.entries(quizMeta).filter(([subjectId]) => items.some((item) => item.subjectId === subjectId))
+  const smartTarget = getSmartStudyTarget(quizMeta, progress)
+  const startPath = smartTarget ? `/chapter/${smartTarget.subjectId}/${smartTarget.chapterId}` : '/'
   const visible = filter === 'all' ? items : items.filter((item) => item.subjectId === filter)
   const grouped = visible.reduce((acc, item) => {
     const key = `${item.subjectId}_${item.chapterId}`
@@ -85,7 +88,7 @@ export default function Review() {
             icon={BookOpenCheck}
             title="No mistakes saved"
             description="Missed quiz questions will appear here automatically."
-            action={<Button to="/" icon={ArrowLeft}>Back home</Button>}
+            action={<Button to={startPath} icon={ArrowLeft}>Continue studying</Button>}
           />
         ) : (
           <>
