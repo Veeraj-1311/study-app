@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, StickyNote } from 'lucide-react'
-import { Card } from './ui.jsx'
+import { Check, List, Pin, StickyNote, Trash2 } from 'lucide-react'
+import { Card, IconButton } from './ui.jsx'
 
 const STORAGE_KEY = 'learnflow-chapter-notes'
 
@@ -24,13 +24,21 @@ const saveAll = (notes) => {
   return true
 }
 
-const loadNote = (subjectId, chapterId) => loadAll()[keyFor(subjectId, chapterId)] || ''
+const loadNoteRecord = (subjectId, chapterId) => {
+  const item = loadAll()[keyFor(subjectId, chapterId)]
+  if (!item) return { text: '', pinned: false }
+  if (typeof item === 'string') return { text: item, pinned: false }
+  return { text: item.text || '', pinned: Boolean(item.pinned) }
+}
 
 export default function ChapterNotes({ subjectId, chapterId }) {
-  const [value, setValue] = useState(() => loadNote(subjectId, chapterId))
+  const initial = loadNoteRecord(subjectId, chapterId)
+  const [value, setValue] = useState(initial.text)
+  const [pinned, setPinned] = useState(initial.pinned)
   const [saved, setSaved] = useState(false)
   const debounceRef = useRef(null)
   const initialRenderRef = useRef(true)
+  const textareaRef = useRef(null)
 
   useEffect(() => {
     if (initialRenderRef.current) {
@@ -41,7 +49,7 @@ export default function ChapterNotes({ subjectId, chapterId }) {
     debounceRef.current = setTimeout(() => {
       const all = loadAll()
       const key = keyFor(subjectId, chapterId)
-      if (value.trim()) all[key] = value
+      if (value.trim() || pinned) all[key] = { text: value, pinned }
       else delete all[key]
       saveAll(all)
       setSaved(true)
@@ -50,7 +58,25 @@ export default function ChapterNotes({ subjectId, chapterId }) {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [value, subjectId, chapterId])
+  }, [value, pinned, subjectId, chapterId])
+
+  const insertSnippet = (snippet) => {
+    const textarea = textareaRef.current
+    if (!textarea) {
+      setValue((current) => `${current}${snippet}`)
+      return
+    }
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const prefix = value.slice(0, start)
+    const suffix = value.slice(end)
+    const next = `${prefix}${snippet}${suffix}`
+    setValue(next)
+    window.requestAnimationFrame(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + snippet.length, start + snippet.length)
+    })
+  }
 
   return (
     <Card className="notes-box">
@@ -59,6 +85,26 @@ export default function ChapterNotes({ subjectId, chapterId }) {
           <StickyNote size={17} style={{ color: 'var(--color-accent)' }} />
           <h2 className="text-base font-extrabold m-0">Chapter notes</h2>
         </div>
+        <div className="notes-actions">
+          <IconButton label={pinned ? 'Unpin note' : 'Pin note'} icon={Pin} className={pinned ? 'is-active' : ''} onClick={() => setPinned((value) => !value)} />
+          <IconButton label="Clear note" icon={Trash2} onClick={() => setValue('')} disabled={!value.trim()} />
+        </div>
+      </div>
+      <div className="notes-toolbar" aria-label="Note shortcuts">
+        <button type="button" onClick={() => insertSnippet('\n- ')}><List size={14} /> Bullet</button>
+        <button type="button" onClick={() => insertSnippet('\n[ ] ')}><Check size={14} /> Check</button>
+        <button type="button" onClick={() => insertSnippet('\nFormula: ')}>fx Formula</button>
+      </div>
+      <textarea
+        ref={textareaRef}
+        className="text-area"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="Jot formulas, doubts, examples, or quick reminders. Notes auto-save."
+        rows={5}
+      />
+      <div className="notes-footer">
+        <span>{value.length} chars{pinned ? ' / pinned' : ''}</span>
         <AnimatePresence>
           {saved && (
             <motion.span
@@ -74,13 +120,6 @@ export default function ChapterNotes({ subjectId, chapterId }) {
           )}
         </AnimatePresence>
       </div>
-      <textarea
-        className="text-area"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        placeholder="Jot formulas, doubts, examples, or quick reminders. Notes auto-save."
-        rows={5}
-      />
     </Card>
   )
 }

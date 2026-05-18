@@ -12,7 +12,7 @@ import {
   Globe,
   Languages,
 } from 'lucide-react'
-import quizData from '../data/quizData.js'
+import quizMeta from '../data/quizMeta.js'
 import PageTransition from '../components/PageTransition'
 import { AppNav, Button, Card, EmptyState, PageHeader, PageShell, ProgressBar } from '../components/ui.jsx'
 import { loadProgress } from '../utils/progress.js'
@@ -43,7 +43,7 @@ function StatusIndicator({ status, score, total }) {
 
 export default function ChapterSelect() {
   const { subjectId } = useParams()
-  const subject = quizData[subjectId]
+  const subject = quizMeta[subjectId]
   const progress = loadProgress()
   const { getSubjectColor } = useTheme()
   useSubjectBackground(subjectId)
@@ -91,7 +91,7 @@ export default function ChapterSelect() {
             const item = subjectProgress[chapter.id]
             const status = item?.status || 'not_started'
             const bestScore = item?.bestScore
-            const bestTotal = item?.bestTotal || chapter.questions?.length || 10
+            const bestTotal = item?.bestTotal || chapter.questionCount || 10
             return (
               <motion.div
                 key={chapter.id}

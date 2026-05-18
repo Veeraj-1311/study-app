@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, BookOpen, Brain, FileText, Play, RotateCcw } from 'lucide-react'
-import quizData from '../data/quizData.js'
+import quizMeta from '../data/quizMeta.js'
 import ChapterNotes from '../components/ChapterNotes.jsx'
 import PageTransition from '../components/PageTransition'
+import AskAI from '../components/AskAI.jsx'
 import QuestionCountSelector from '../components/QuestionCountSelector.jsx'
 import { AppNav, Button, Card, EmptyState, PageHeader, PageShell } from '../components/ui.jsx'
-import { getMistakeCount } from '../utils/progress.js'
+import { getMistakeCount, markLastStudy } from '../utils/progress.js'
 import { playClick } from '../utils/sounds.js'
 import { useSubjectBackground, useTheme } from '../hooks/useTheme.js'
 
@@ -20,13 +21,31 @@ const loadQuestionCount = () => {
 }
 
 function ActionCard({ icon: Icon, title, description, color, onClick, children, index }) {
+  const hasNestedControls = Boolean(children)
+  const handleKeyDown = (event) => {
+    if (!hasNestedControls || event.target !== event.currentTarget) return
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onClick()
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.06 * index, duration: 0.2 }}
     >
-      <Card as="button" type="button" interactive className="action-card" onClick={onClick}>
+      <Card
+        as={hasNestedControls ? 'div' : 'button'}
+        type={hasNestedControls ? undefined : 'button'}
+        role={hasNestedControls ? 'button' : undefined}
+        tabIndex={hasNestedControls ? 0 : undefined}
+        interactive
+        className="action-card"
+        onClick={onClick}
+        onKeyDown={handleKeyDown}
+      >
         <span className="action-icon" style={{ color, background: `${color}14` }}>
           <Icon size={21} />
         </span>
@@ -43,11 +62,15 @@ function ActionCard({ icon: Icon, title, description, color, onClick, children, 
 export default function ChapterLanding() {
   const { subjectId, chapterId } = useParams()
   const navigate = useNavigate()
-  const subject = quizData[subjectId]
+  const subject = quizMeta[subjectId]
   const chapter = subject?.chapters?.find((item) => item.id === Number(chapterId))
   const { getSubjectColor } = useTheme()
   useSubjectBackground(subjectId)
   const [questionCount, setQuestionCount] = useState(loadQuestionCount)
+
+  useEffect(() => {
+    if (subject && chapter) markLastStudy(subjectId, chapterId)
+  }, [chapter, chapterId, subject, subjectId])
 
   if (!subject || !chapter) {
     return (
@@ -80,7 +103,10 @@ export default function ChapterLanding() {
   return (
     <PageTransition>
       <PageShell size="focus">
-        <AppNav backTo={`/subject/${subjectId}`} />
+        <AppNav
+          backTo={`/subject/${subjectId}`}
+          actions={<AskAI inline defaultContext={`${subject.name} / ${chapter.name}`} />}
+        />
         <PageHeader
           icon={BookOpen}
           eyebrow={subject.name}
@@ -104,7 +130,7 @@ export default function ChapterLanding() {
               <QuestionCountSelector
                 value={questionCount}
                 onChange={handleCountChange}
-                maxAvailable={chapter.questions?.length || 10}
+                maxAvailable={chapter.questionCount || 10}
               />
             </ActionCard>
 

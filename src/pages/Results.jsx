@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { ArrowLeft, BarChart3, RotateCcw, Star, Target, Trophy } from 'lucide-react'
-import quizData from '../data/quizData.js'
+import quizMeta from '../data/quizMeta.js'
 import PageTransition from '../components/PageTransition'
 import { AppNav, Button, Card, EmptyState, PageHeader, PageShell } from '../components/ui.jsx'
 import { saveProgress } from '../utils/progress.js'
@@ -24,7 +24,7 @@ export default function Results() {
   const review = Boolean(state?.review)
   useSubjectBackground(subjectId)
 
-  const subject = quizData[subjectId]
+  const subject = quizMeta[subjectId]
   const chapter = subject?.chapters?.find((item) => item.id === Number(chapterId))
   const [displayScore, setDisplayScore] = useState(0)
   const savedRef = useRef(false)

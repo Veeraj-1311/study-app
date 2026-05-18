@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { BarChart3, BookOpenCheck, Layers, Target } from 'lucide-react'
-import quizData from '../data/quizData.js'
+import quizMeta from '../data/quizMeta.js'
 import PageTransition from '../components/PageTransition'
 import { AppNav, Card, Metric, PageHeader, PageShell, ProgressBar } from '../components/ui.jsx'
 import { loadMistakes, loadProgress } from '../utils/progress.js'
@@ -46,7 +46,7 @@ export default function Stats() {
   const progress = loadProgress()
   const mistakes = loadMistakes()
   const { getSubjectColor } = useTheme()
-  const subjects = Object.entries(quizData)
+  const subjects = Object.entries(quizMeta)
 
   let totalScore = 0
   let totalQuestions = 0
@@ -85,7 +85,7 @@ export default function Stats() {
           <Metric icon={Target} label="Accuracy" value={`${accuracy}%`} />
           <Metric icon={BookOpenCheck} label="Questions" value={`${totalScore}/${totalQuestions}`} color="#16a34a" />
           <Metric icon={Layers} label="Chapters done" value={`${completedChapters}/${totalChapters}`} color="#d97706" />
-          <Metric icon={BarChart3} label="To review" value={totalMistakes} color="#dc2626" />
+          <Metric icon={BarChart3} label="To review" value={totalMistakes} color="#dc2626" to="/review" />
         </div>
 
         <section className="stats-list">

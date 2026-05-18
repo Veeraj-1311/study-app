@@ -1,18 +1,25 @@
+import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { ArrowLeft, BookOpen } from 'lucide-react'
-import quizData from '../data/quizData.js'
+import quizMeta from '../data/quizMeta.js'
 import summaries from '../data/summaries.js'
+import AskAI from '../components/AskAI.jsx'
 import PageTransition from '../components/PageTransition'
 import { AppNav, Button, Card, EmptyState, PageHeader, PageShell } from '../components/ui.jsx'
+import { markLastStudy } from '../utils/progress.js'
 import { useTheme } from '../hooks/useTheme.js'
 
 export default function Summary() {
   const { subjectId, chapterId } = useParams()
-  const subject = quizData[subjectId]
+  const subject = quizMeta[subjectId]
   const chapter = subject?.chapters?.find((item) => item.id === Number(chapterId))
   const summary = summaries[subjectId]?.[chapterId] || []
   const { getSubjectColor } = useTheme()
   const color = subject ? getSubjectColor(subjectId) : 'var(--color-accent)'
+
+  useEffect(() => {
+    if (subject && chapter) markLastStudy(subjectId, chapterId)
+  }, [chapter, chapterId, subject, subjectId])
 
   if (!subject || !chapter) {
     return (
@@ -33,7 +40,10 @@ export default function Summary() {
   return (
     <PageTransition>
       <PageShell size="focus">
-        <AppNav backTo={`/chapter/${subjectId}/${chapterId}`} />
+        <AppNav
+          backTo={`/chapter/${subjectId}/${chapterId}`}
+          actions={<AskAI inline defaultContext={`${subject.name} / ${chapter.name} summary`} />}
+        />
         <PageHeader
           icon={BookOpen}
           eyebrow={`${subject.name} / Summary`}

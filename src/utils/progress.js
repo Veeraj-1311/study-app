@@ -1,5 +1,6 @@
 const PROGRESS_KEY = 'learnflow-progress'
 const MISTAKES_KEY = 'learnflow-mistakes'
+const LAST_STUDY_KEY = 'learnflow-last-study'
 
 export function loadJson(key, fallback) {
   try {
@@ -31,8 +32,45 @@ export function saveProgress(subjectId, chapterId, score, total) {
     bestScore: Math.max(score, existing?.bestScore || 0),
     bestTotal: total,
     status: score === total ? 'completed' : 'in_progress',
+    updatedAt: Date.now(),
   }
   saveJson(PROGRESS_KEY, progress)
+  markLastStudy(subjectId, chapterId)
+}
+
+export function markLastStudy(subjectId, chapterId) {
+  saveJson(LAST_STUDY_KEY, {
+    subjectId,
+    chapterId: Number(chapterId),
+    updatedAt: Date.now(),
+  })
+}
+
+export function loadLastStudy() {
+  return loadJson(LAST_STUDY_KEY, null)
+}
+
+export function getSmartStudyTarget(meta, progress = loadProgress()) {
+  const last = loadLastStudy()
+  if (last && meta[last.subjectId]?.chapters?.some((chapter) => chapter.id === Number(last.chapterId))) {
+    const lastProgress = progress[last.subjectId]?.[last.chapterId]
+    if (lastProgress?.status !== 'completed') return last
+  }
+
+  const entries = Object.entries(meta)
+  for (const [subjectId, subject] of entries) {
+    const inProgress = subject.chapters.find((chapter) => progress[subjectId]?.[chapter.id]?.status === 'in_progress')
+    if (inProgress) return { subjectId, chapterId: inProgress.id }
+  }
+
+  for (const [subjectId, subject] of entries) {
+    const next = subject.chapters.find((chapter) => progress[subjectId]?.[chapter.id]?.status !== 'completed')
+    if (next) return { subjectId, chapterId: next.id }
+  }
+
+  const firstSubject = entries[0]
+  const firstChapter = firstSubject?.[1]?.chapters?.[0]
+  return firstSubject && firstChapter ? { subjectId: firstSubject[0], chapterId: firstChapter.id } : null
 }
 
 export function loadMistakes() {

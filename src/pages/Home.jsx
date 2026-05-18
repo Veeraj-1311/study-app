@@ -12,13 +12,14 @@ import {
   Sparkles,
   Target,
 } from 'lucide-react'
-import quizData from '../data/quizData.js'
+import quizMeta from '../data/quizMeta.js'
 import AskAI from '../components/AskAI'
 import PageTransition from '../components/PageTransition'
+import StudySearch from '../components/StudySearch.jsx'
 import TaskList from '../components/TaskList'
 import ThemeSwitcher from '../components/ThemeSwitcher'
 import { AppNav, Button, Card, Metric, PageHeader, PageShell, ProgressBar } from '../components/ui.jsx'
-import { loadMistakes, loadProgress } from '../utils/progress.js'
+import { getSmartStudyTarget, loadMistakes, loadProgress } from '../utils/progress.js'
 import { playClick } from '../utils/sounds.js'
 import { useTheme } from '../hooks/useTheme.js'
 
@@ -73,7 +74,7 @@ function SubjectCard({ subjectId, subject, progress, mistakes, index }) {
 export default function Home() {
   const progress = loadProgress()
   const mistakes = loadMistakes()
-  const subjects = Object.entries(quizData)
+  const subjects = Object.entries(quizMeta)
   const greeting = greetingFor(new Date().getHours())
 
   let totalChapters = 0
@@ -97,6 +98,8 @@ export default function Home() {
   })
 
   const accuracy = totalQuestions ? Math.round((totalScore / totalQuestions) * 100) : 0
+  const smartTarget = getSmartStudyTarget(quizMeta, progress)
+  const startPath = smartTarget ? `/chapter/${smartTarget.subjectId}/${smartTarget.chapterId}` : `/subject/${subjects[0]?.[0] || 'math'}`
 
   return (
     <PageTransition>
@@ -116,13 +119,15 @@ export default function Home() {
           eyebrow={greeting}
           title="Study with less friction."
           description="Pick a chapter, quiz yourself, keep quick notes, and use the progress trail to decide what needs attention next."
-          actions={<Button to={`/subject/${subjects[0]?.[0] || 'math'}`} variant="accent" size="lg" icon={Target}>Start studying</Button>}
+          actions={<Button to={startPath} variant="accent" size="lg" icon={Target}>Continue studying</Button>}
         />
+
+        <StudySearch />
 
         <div className="quick-stats">
           <Metric icon={BookOpen} label="Chapters done" value={`${completedChapters}/${totalChapters}`} />
           <Metric icon={Target} label="Accuracy" value={`${accuracy}%`} color="#16a34a" />
-          <Metric icon={BarChart3} label="To review" value={totalMistakes} color="#dc2626" />
+          <Metric icon={BarChart3} label="To review" value={totalMistakes} color="#dc2626" to="/review" />
         </div>
 
         <div className="dashboard-grid">

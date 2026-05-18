@@ -146,7 +146,7 @@ function TypingDots() {
   )
 }
 
-export default function AskAI({ defaultContext = '', inline = false }) {
+export default function AskAI({ defaultContext = '', inline = false, label = 'Ask AI', draft = '' }) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [context, setContext] = useState(defaultContext)
@@ -236,6 +236,12 @@ export default function AskAI({ defaultContext = '', inline = false }) {
     setError(null)
   }
 
+  const openDialog = () => {
+    if (defaultContext) setContext(defaultContext)
+    if (draft) setInput(draft)
+    setOpen(true)
+  }
+
   const handleFilesSelected = async (event) => {
     const selected = Array.from(event.target.files || [])
     event.target.value = ''
@@ -275,12 +281,12 @@ export default function AskAI({ defaultContext = '', inline = false }) {
         <motion.button
           type="button"
           className={inline ? 'button button-secondary button-sm' : 'floating-button'}
-          onClick={() => setOpen(true)}
+          onClick={openDialog}
           whileTap={{ scale: 0.96 }}
-          aria-label="Ask AI"
+          aria-label={label}
         >
           <Bot size={17} style={{ color: 'var(--color-accent)' }} />
-          <span>Ask AI</span>
+          <span>{label}</span>
         </motion.button>
       </div>
 

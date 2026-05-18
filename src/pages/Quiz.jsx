@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, RotateCcw, XCircle } from 'lucide-react'
-import quizData from '../data/quizData.js'
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, Flag, FlagOff, ListChecks, LoaderCircle, RotateCcw, SkipForward, XCircle } from 'lucide-react'
+import quizMeta from '../data/quizMeta.js'
+import { loadChapterQuestions, loadQuestionsForChapters } from '../data/questionLoaders.js'
+import AskAI from '../components/AskAI.jsx'
 import PageTransition from '../components/PageTransition'
 import { AppNav, Button, Card, EmptyState, PageHeader, PageShell, ProgressBar } from '../components/ui.jsx'
-import { loadMistakes, questionId, saveMistakes, saveProgress } from '../utils/progress.js'
+import { loadMistakes, markLastStudy, questionId, saveMistakes, saveProgress } from '../utils/progress.js'
 import { playCorrect, playWrong } from '../utils/sounds.js'
 import { useSubjectBackground } from '../hooks/useTheme.js'
+
+const EMPTY_QUESTIONS = []
 
 function shuffle(items) {
   const copy = [...items]
@@ -17,97 +21,204 @@ function shuffle(items) {
   return copy
 }
 
-function createQuestionSet({ chapter, reviewMode, subjectId, chapterId, questionCount }) {
-  const all = chapter?.questions || []
+function withSource(question, subjectId, chapterId) {
+  const subject = quizMeta[subjectId]
+  const chapter = subject?.chapters.find((item) => item.id === Number(chapterId))
+  return {
+    ...question,
+    sourceSubjectId: subjectId,
+    sourceChapterId: Number(chapterId),
+    sourceSubjectName: subject?.name || subjectId,
+    sourceChapterName: chapter?.name || `Chapter ${chapterId}`,
+    sourceQuestionId: questionId(question),
+  }
+}
+
+async function createQuestionSet({ subjectId, chapterId, reviewMode, globalReview, questionCount }) {
+  if (globalReview) {
+    const mistakes = loadMistakes()
+    const chapters = Object.entries(mistakes).flatMap(([mistakeSubjectId, subjectMistakes]) =>
+      Object.keys(subjectMistakes).map((mistakeChapterId) => ({
+        subjectId: mistakeSubjectId,
+        chapterId: Number(mistakeChapterId),
+        ids: new Set(subjectMistakes[mistakeChapterId] || []),
+      }))
+    )
+    const entries = await loadQuestionsForChapters(chapters)
+    return shuffle(entries.flatMap((entry) => {
+      const source = chapters.find((item) => item.subjectId === entry.subjectId && item.chapterId === entry.chapterId)
+      return entry.questions
+        .filter((question) => source?.ids.has(questionId(question)))
+        .map((question) => withSource(question, entry.subjectId, entry.chapterId))
+    }))
+  }
+
+  const questions = await loadChapterQuestions(subjectId, chapterId)
+  const sourced = questions.map((question) => withSource(question, subjectId, chapterId))
   if (reviewMode) {
     const wrongIds = new Set(loadMistakes()[subjectId]?.[chapterId] || [])
-    return shuffle(all.filter((question) => wrongIds.has(questionId(question))))
+    return shuffle(sourced.filter((question) => wrongIds.has(question.sourceQuestionId)))
   }
-  return shuffle(all).slice(0, questionCount)
+  return shuffle(sourced).slice(0, questionCount)
+}
+
+function answerStateFor(answer, correct) {
+  if (!answer) return 'unanswered'
+  return answer.selected === correct ? 'correct' : 'wrong'
 }
 
 export default function Quiz() {
   const { subjectId, chapterId } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  useSubjectBackground(subjectId)
+  const globalReview = subjectId === 'review' && chapterId === 'all'
+  useSubjectBackground(globalReview ? null : subjectId)
 
-  const subject = quizData[subjectId]
+  const subject = globalReview ? null : quizMeta[subjectId]
   const chapter = subject?.chapters?.find((item) => item.id === Number(chapterId))
   const questionCount = parseInt(searchParams.get('count') || '10', 10)
-  const reviewMode = searchParams.get('review') === 'mistakes'
-  const [questions] = useState(() => createQuestionSet({ chapter, reviewMode, subjectId, chapterId, questionCount }))
+  const reviewMode = globalReview || searchParams.get('review') === 'mistakes'
+  const loadKey = `${subjectId}:${chapterId}:${reviewMode}:${globalReview}:${questionCount}`
+  const [questionState, setQuestionState] = useState({ key: '', questions: [] })
   const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [selectedAnswer, setSelectedAnswer] = useState(null)
-  const [answers, setAnswers] = useState([])
+  const [answers, setAnswers] = useState({})
+  const [flagged, setFlagged] = useState(() => new Set())
+  const [showReview, setShowReview] = useState(false)
+  const [explainAtEnd, setExplainAtEnd] = useState(false)
 
+  useEffect(() => {
+    let cancelled = false
+
+    createQuestionSet({ subjectId, chapterId, reviewMode, globalReview, questionCount })
+      .then((next) => {
+        if (cancelled) return
+        setQuestionState({ key: loadKey, questions: next })
+        setAnswers({})
+        setFlagged(new Set())
+        setShowReview(false)
+        setCurrentQuestion(0)
+        if (!globalReview && subject && chapter) markLastStudy(subjectId, chapterId)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [chapter, chapterId, globalReview, loadKey, questionCount, reviewMode, subject, subjectId])
+
+  const loading = questionState.key !== loadKey
+  const questions = useMemo(() => (loading ? EMPTY_QUESTIONS : questionState.questions), [loading, questionState.questions])
   const total = questions.length
   const question = questions[currentQuestion]
-  const hasAnswered = selectedAnswer !== null
-  const progressPercent = total ? ((currentQuestion + (hasAnswered ? 1 : 0)) / total) * 100 : 0
+  const currentAnswer = answers[currentQuestion]
+  const hasAnswered = Boolean(currentAnswer)
+  const answeredCount = Object.keys(answers).length
+  const correctCount = Object.values(answers).filter((answer) => answer.isCorrect).length
+  const progressPercent = total ? (answeredCount / total) * 100 : 0
+  const backTo = globalReview ? '/review' : `/chapter/${subjectId}/${chapterId}`
+  const pageTitle = globalReview ? 'All saved mistakes' : chapter?.name
+  const pageEyebrow = globalReview ? 'Mistake review' : (reviewMode ? 'Mistake review' : subject?.name)
+  const aiContext = globalReview
+    ? 'Saved mistake review'
+    : `${subject?.name || 'Subject'} / ${chapter?.name || 'Chapter'}`
+
+  const aiDraft = useMemo(() => {
+    if (!question) return ''
+    const options = question.options.map((option, index) => `${String.fromCharCode(65 + index)}. ${option}`).join('\n')
+    const answerLine = hasAnswered
+      ? `\nI selected ${String.fromCharCode(65 + currentAnswer.selected)}. ${currentAnswer.isCorrect ? 'It was correct.' : `The correct answer is ${String.fromCharCode(65 + question.correct)}.`}`
+      : ''
+    return `Explain this question clearly:\n\n${question.question}\n\nOptions:\n${options}${answerLine}\n\nExplanation from the app: ${question.explanation || 'Not available'}`
+  }, [currentAnswer, hasAnswered, question])
+
+  const optionState = (index) => {
+    if (!hasAnswered) return 'idle'
+    if (index === question.correct) return 'correct'
+    if (index === currentAnswer.selected) return 'wrong'
+    return 'muted'
+  }
 
   const handleAnswer = useCallback((optionIndex) => {
-    if (!question || selectedAnswer !== null) return
+    if (!question || answers[currentQuestion]) return
     const isCorrect = optionIndex === question.correct
-    setSelectedAnswer(optionIndex)
-    setAnswers((prev) => [
+    setAnswers((prev) => ({
       ...prev,
-      {
-        questionIndex: currentQuestion,
+      [currentQuestion]: {
         selected: optionIndex,
         correct: question.correct,
         isCorrect,
       },
-    ])
+    }))
     if (isCorrect) playCorrect()
     else playWrong()
-  }, [currentQuestion, question, selectedAnswer])
+  }, [answers, currentQuestion, question])
 
-  const finishQuiz = useCallback(() => {
-    const computedScore = answers.filter((answer) => answer.isCorrect).length
-    const fixedIds = answers
-      .filter((answer) => answer.isCorrect)
-      .map((answer) => questionId(questions[answer.questionIndex]))
-    const wrongIds = answers
-      .filter((answer) => !answer.isCorrect)
-      .map((answer) => questionId(questions[answer.questionIndex]))
-
-    saveMistakes(subjectId, chapterId, wrongIds, fixedIds)
-    if (!reviewMode) saveProgress(subjectId, chapterId, computedScore, total)
-    navigate(`/results/${subjectId}/${chapterId}`, {
-      state: { score: computedScore, total, review: reviewMode },
-    })
-  }, [answers, chapterId, navigate, questions, reviewMode, subjectId, total])
-
-  const handleNext = useCallback(() => {
-    if (!hasAnswered) return
+  const goNext = useCallback(() => {
     if (currentQuestion < total - 1) {
       setCurrentQuestion((prev) => prev + 1)
-      setSelectedAnswer(null)
       return
     }
-    finishQuiz()
-  }, [currentQuestion, finishQuiz, hasAnswered, total])
+    setShowReview(true)
+  }, [currentQuestion, total])
+
+  const toggleFlag = () => {
+    setFlagged((prev) => {
+      const next = new Set(prev)
+      if (next.has(currentQuestion)) next.delete(currentQuestion)
+      else next.add(currentQuestion)
+      return next
+    })
+  }
+
+  const finishQuiz = useCallback(() => {
+    const byChapter = new Map()
+    questions.forEach((item, index) => {
+      const answer = answers[index]
+      const key = `${item.sourceSubjectId}_${item.sourceChapterId}`
+      const entry = byChapter.get(key) || {
+        subjectId: item.sourceSubjectId,
+        chapterId: item.sourceChapterId,
+        wrongIds: [],
+        fixedIds: [],
+      }
+      if (answer?.isCorrect) entry.fixedIds.push(item.sourceQuestionId)
+      else entry.wrongIds.push(item.sourceQuestionId)
+      byChapter.set(key, entry)
+    })
+
+    byChapter.forEach((entry) => {
+      saveMistakes(entry.subjectId, entry.chapterId, entry.wrongIds, entry.fixedIds)
+    })
+
+    if (globalReview) {
+      navigate('/review')
+      return
+    }
+
+    if (!reviewMode) saveProgress(subjectId, chapterId, correctCount, total)
+    navigate(`/results/${subjectId}/${chapterId}`, {
+      state: { score: correctCount, total, review: reviewMode },
+    })
+  }, [answers, chapterId, correctCount, globalReview, navigate, questions, reviewMode, subjectId, total])
 
   useEffect(() => {
     const onKey = (event) => {
       const tag = (event.target?.tagName || '').toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
       const keyMap = { 1: 0, 2: 1, 3: 2, 4: 3 }
-      if (!hasAnswered && event.key in keyMap && question?.options[keyMap[event.key]]) {
+      if (!showReview && !hasAnswered && event.key in keyMap && question?.options[keyMap[event.key]]) {
         event.preventDefault()
         handleAnswer(keyMap[event.key])
       }
-      if (hasAnswered && event.key === 'Enter') {
+      if (!showReview && event.key === 'Enter') {
         event.preventDefault()
-        handleNext()
+        goNext()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [handleAnswer, handleNext, hasAnswered, question])
+  }, [goNext, handleAnswer, hasAnswered, question, showReview])
 
-  if (!subject || !chapter) {
+  if (!globalReview && (!subject || !chapter)) {
     return (
       <PageTransition>
         <PageShell size="narrow">
@@ -123,52 +234,123 @@ export default function Quiz() {
     )
   }
 
-  if (!question) {
+  if (loading) {
     return (
       <PageTransition>
         <PageShell size="narrow">
-          <AppNav backTo={`/chapter/${subjectId}/${chapterId}`} />
+          <AppNav backTo={backTo} />
           <EmptyState
-            icon={reviewMode ? RotateCcw : CheckCircle2}
-            title={reviewMode ? 'No mistakes to review' : 'No questions yet'}
-            description={reviewMode ? 'This chapter has no saved mistakes right now.' : 'Questions have not been added for this chapter.'}
-            action={<Button to={`/chapter/${subjectId}/${chapterId}`}>Back to chapter</Button>}
+            icon={LoaderCircle}
+            title="Loading questions"
+            description="Preparing a focused quiz session."
           />
         </PageShell>
       </PageTransition>
     )
   }
 
-  const optionState = (index) => {
-    if (!hasAnswered) return 'idle'
-    if (index === question.correct) return 'correct'
-    if (index === selectedAnswer) return 'wrong'
-    return 'muted'
+  if (!question) {
+    return (
+      <PageTransition>
+        <PageShell size="narrow">
+          <AppNav backTo={backTo} />
+          <EmptyState
+            icon={reviewMode ? RotateCcw : CheckCircle2}
+            title={reviewMode ? 'No mistakes to review' : 'No questions yet'}
+            description={reviewMode ? 'There are no saved mistakes in this set right now.' : 'Questions have not been added for this chapter.'}
+            action={<Button to={backTo}>Back</Button>}
+          />
+        </PageShell>
+      </PageTransition>
+    )
+  }
+
+  if (showReview) {
+    return (
+      <PageTransition>
+        <PageShell size="focus">
+          <AppNav backTo={backTo} />
+          <PageHeader
+            icon={ListChecks}
+            eyebrow={pageEyebrow}
+            title="Review before finishing"
+            description={`${correctCount} correct / ${total - answeredCount} unanswered / ${flagged.size} flagged`}
+          />
+
+          <Card className="quiz-card">
+            <div className="review-grid">
+              {questions.map((item, index) => {
+                const answer = answers[index]
+                const state = answerStateFor(answer, item.correct)
+                return (
+                  <button
+                    type="button"
+                    key={`${item.sourceSubjectId}-${item.sourceChapterId}-${item.sourceQuestionId}-${index}`}
+                    className="review-tile"
+                    data-state={state}
+                    onClick={() => {
+                      setCurrentQuestion(index)
+                      setShowReview(false)
+                    }}
+                  >
+                    <strong>{index + 1}</strong>
+                    <span>{state}{flagged.has(index) ? ' / flagged' : ''}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="quiz-footer quiz-footer-split">
+              <Button variant="secondary" onClick={() => setShowReview(false)} icon={ArrowLeft}>Back to quiz</Button>
+              <Button variant="accent" onClick={finishQuiz} icon={CheckCircle2}>Finish</Button>
+            </div>
+          </Card>
+        </PageShell>
+      </PageTransition>
+    )
   }
 
   return (
     <PageTransition>
       <PageShell size="focus">
-        <AppNav backTo={`/chapter/${subjectId}/${chapterId}`} />
+        <AppNav
+          backTo={backTo}
+          actions={<AskAI inline label="Ask about this question" defaultContext={aiContext} draft={aiDraft} />}
+        />
         <PageHeader
-          eyebrow={reviewMode ? 'Mistake review' : subject.name}
-          title={chapter.name}
-          description={reviewMode ? 'Review only the questions that need another pass.' : 'Answer, read the explanation, then continue when ready.'}
+          eyebrow={pageEyebrow}
+          title={pageTitle}
+          description={reviewMode ? 'Review only the questions that need another pass.' : 'Answer, skip, flag, then review everything before finishing.'}
         />
 
         <Card className="quiz-card">
           <div className="quiz-topline">
             <span>Question {currentQuestion + 1} of {total}</span>
-            <span>{answers.filter((answer) => answer.isCorrect).length} correct</span>
+            <span>{correctCount} correct</span>
           </div>
           <ProgressBar value={progressPercent} />
 
+          <div className="quiz-tools">
+            <button type="button" className="tool-chip" onClick={() => setExplainAtEnd((value) => !value)}>
+              {explainAtEnd ? <EyeOff size={15} /> : <Eye size={15} />}
+              <span>{explainAtEnd ? 'Explain at end' : 'Explain now'}</span>
+            </button>
+            <button type="button" className="tool-chip" data-active={flagged.has(currentQuestion)} onClick={toggleFlag}>
+              {flagged.has(currentQuestion) ? <FlagOff size={15} /> : <Flag size={15} />}
+              <span>{flagged.has(currentQuestion) ? 'Unflag' : 'Flag'}</span>
+            </button>
+          </div>
+
           <div key={currentQuestion}>
+            {globalReview && (
+              <p className="quiz-source">
+                {question.sourceSubjectName} / {question.sourceChapterName}
+              </p>
+            )}
             <h1 className="quiz-question">{question.question}</h1>
             <div className="answer-list">
               {question.options.map((option, index) => (
                 <button
-                  key={option}
+                  key={`${option}-${index}`}
                   type="button"
                   className="answer-option"
                   data-state={optionState(index)}
@@ -178,33 +360,33 @@ export default function Quiz() {
                   <span className="answer-key">{String.fromCharCode(65 + index)}</span>
                   <span className="answer-copy">{option}</span>
                   {hasAnswered && index === question.correct && <CheckCircle2 size={19} style={{ color: '#16a34a' }} />}
-                  {hasAnswered && index === selectedAnswer && index !== question.correct && <XCircle size={19} style={{ color: '#dc2626' }} />}
+                  {hasAnswered && index === currentAnswer.selected && index !== question.correct && <XCircle size={19} style={{ color: '#dc2626' }} />}
                 </button>
               ))}
             </div>
 
-            {hasAnswered && question.explanation && (
+            {hasAnswered && !explainAtEnd && question.explanation && (
               <div className="explanation">
                 <strong>Why: </strong>{question.explanation}
               </div>
             )}
 
-            <div className="quiz-footer">
-              {hasAnswered ? (
-                <Button variant="accent" onClick={handleNext}>
-                  {currentQuestion < total - 1 ? 'Continue' : 'Finish quiz'}
+            <div className="quiz-footer quiz-footer-split">
+              <Button variant="secondary" onClick={goNext} icon={SkipForward}>
+                {currentQuestion < total - 1 ? 'Skip' : 'Review'}
+              </Button>
+              <div className="quiz-footer-actions">
+                <Button variant="ghost" onClick={() => setShowReview(true)} icon={ListChecks}>Review</Button>
+                <Button variant="accent" onClick={goNext}>
+                  {currentQuestion < total - 1 ? 'Continue' : 'Review answers'}
                 </Button>
-              ) : (
-                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                  Tip: use keys 1-4 to answer.
-                </p>
-              )}
+              </div>
             </div>
           </div>
         </Card>
 
         <div className="mt-5 text-center">
-          <Link to={`/chapter/${subjectId}/${chapterId}`} style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>
+          <Link to={backTo} style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>
             Leave quiz
           </Link>
         </div>

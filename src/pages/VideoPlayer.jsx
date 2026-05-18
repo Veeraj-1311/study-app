@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { ArrowLeft, Link as LinkIcon, Play, Plus, Trash2, Video, X } from 'lucide-react'
-import quizData from '../data/quizData.js'
+import quizMeta from '../data/quizMeta.js'
 import videoData from '../data/videos.js'
+import AskAI from '../components/AskAI.jsx'
 import PageTransition from '../components/PageTransition'
 import { AppNav, Button, Card, EmptyState, IconButton, PageHeader, PageShell } from '../components/ui.jsx'
+import { markLastStudy } from '../utils/progress.js'
 import { playClick } from '../utils/sounds.js'
 import { useTheme } from '../hooks/useTheme.js'
 
@@ -47,12 +49,16 @@ function saveVideos(subjectId, chapterId, videos) {
 
 export default function VideoPlayer() {
   const { subjectId, chapterId } = useParams()
-  const subject = quizData[subjectId]
+  const subject = quizMeta[subjectId]
   const chapter = subject?.chapters?.find((item) => item.id === Number(chapterId))
   const { getSubjectColor } = useTheme()
   const [customVideos, setCustomVideos] = useState(() => getSavedVideos(subjectId, chapterId))
   const [inputValue, setInputValue] = useState('')
   const [showInput, setShowInput] = useState(false)
+
+  useEffect(() => {
+    if (subject && chapter) markLastStudy(subjectId, chapterId)
+  }, [chapter, chapterId, subject, subjectId])
 
   if (!subject || !chapter) {
     return (
@@ -98,7 +104,10 @@ export default function VideoPlayer() {
   return (
     <PageTransition>
       <PageShell size="focus">
-        <AppNav backTo={`/chapter/${subjectId}/${chapterId}`} />
+        <AppNav
+          backTo={`/chapter/${subjectId}/${chapterId}`}
+          actions={<AskAI inline defaultContext={`${subject.name} / ${chapter.name}`} />}
+        />
         <PageHeader
           icon={Play}
           eyebrow={`${subject.name} / Video`}

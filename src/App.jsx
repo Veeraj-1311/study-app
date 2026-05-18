@@ -11,6 +11,7 @@ const Results = lazy(() => import('./pages/Results'))
 const Summary = lazy(() => import('./pages/Summary'))
 const VideoPlayer = lazy(() => import('./pages/VideoPlayer'))
 const Stats = lazy(() => import('./pages/Stats'))
+const Review = lazy(() => import('./pages/Review'))
 
 function RouteFallback() {
   return <div className="route-loader">Loading LearnFlow...</div>
@@ -34,6 +35,7 @@ function App() {
             <Route path="/summary/:subjectId/:chapterId" element={<Summary />} />
             <Route path="/video/:subjectId/:chapterId" element={<VideoPlayer />} />
             <Route path="/stats" element={<Stats />} />
+            <Route path="/review" element={<Review />} />
             <Route path="*" element={<Home />} />
           </Routes>
         </AnimatePresence>

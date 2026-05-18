@@ -107,14 +107,16 @@ export function EmptyState({ icon: Icon, title, description, action = null }) {
   )
 }
 
-export function Metric({ label, value, icon: Icon, color = 'var(--color-accent)' }) {
+export function Metric({ label, value, icon: Icon, color = 'var(--color-accent)', to }) {
+  const Tag = to ? Link : 'div'
+  const props = to ? { to } : {}
   return (
-    <div className="metric">
+    <Tag className={`metric ${to ? 'metric-link' : ''}`} {...props}>
       <div className="metric-label">
         {Icon && <Icon size={15} style={{ color }} />}
         <span>{label}</span>
       </div>
       <strong>{value}</strong>
-    </div>
+    </Tag>
   )
 }
