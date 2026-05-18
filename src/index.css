@@ -817,7 +817,9 @@ a {
 }
 
 .notes-library,
-.reports-panel {
+.reports-panel,
+.saved-panel,
+.weak-panel {
   padding: 16px;
 }
 
@@ -828,7 +830,9 @@ a {
 }
 
 .notes-result-list,
-.report-list {
+.report-list,
+.saved-question-list,
+.weak-list {
   display: grid;
   gap: 8px;
 }
@@ -870,6 +874,82 @@ a {
   line-height: 1.5;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+}
+
+.saved-question-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.saved-question-item > a {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.saved-question-item span,
+.saved-question-item small {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.saved-question-item strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.weak-item {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.weak-item:hover,
+.saved-question-item:hover {
+  border-color: rgba(var(--color-accent-r), var(--color-accent-g), var(--color-accent-b), 0.32);
+  background: white;
+}
+
+.weak-item span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.weak-item strong,
+.weak-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weak-item strong {
+  color: var(--color-text-primary);
+  font-size: 0.88rem;
+}
+
+.weak-item small {
+  color: var(--color-text-muted);
+  font-size: 0.74rem;
+  font-weight: 900;
 }
 
 .question-count {
@@ -1992,6 +2072,10 @@ a {
   }
 
   .report-item {
+    grid-template-columns: 1fr;
+  }
+
+  .saved-question-item {
     grid-template-columns: 1fr;
   }
 

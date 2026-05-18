@@ -18,6 +18,7 @@ import PageTransition from '../components/PageTransition'
 import StudySearch from '../components/StudySearch.jsx'
 import TaskList from '../components/TaskList'
 import ThemeSwitcher from '../components/ThemeSwitcher'
+import WeakAreas from '../components/WeakAreas.jsx'
 import { AppNav, Button, Card, Metric, PageHeader, PageShell, ProgressBar } from '../components/ui.jsx'
 import { getSmartStudyTarget, loadMistakes, loadProgress } from '../utils/progress.js'
 import { playClick } from '../utils/sounds.js'
@@ -153,6 +154,7 @@ export default function Home() {
           </section>
 
           <aside className="home-panel">
+            <WeakAreas />
             <TaskList />
           </aside>
         </div>

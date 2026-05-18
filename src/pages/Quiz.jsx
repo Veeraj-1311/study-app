@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff, Flag, FlagOff, ListChecks, LoaderCircle, RotateCcw, SkipForward, XCircle } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Bookmark, BookmarkCheck, CheckCircle2, Eye, EyeOff, ListChecks, LoaderCircle, RotateCcw, SkipForward, XCircle } from 'lucide-react'
 import quizMeta from '../data/quizMeta.js'
 import { loadChapterQuestions, loadQuestionsForChapters } from '../data/questionLoaders.js'
 import AskAI from '../components/AskAI.jsx'
@@ -8,6 +8,8 @@ import PageTransition from '../components/PageTransition'
 import QuestionFeedback from '../components/QuestionFeedback.jsx'
 import { AppNav, Button, Card, EmptyState, PageHeader, PageShell, ProgressBar } from '../components/ui.jsx'
 import { loadMistakes, markLastStudy, questionId, saveMistakes, saveProgress } from '../utils/progress.js'
+import { clearOldQuizSessions, clearQuizSession, loadQuizSession, saveQuizSession } from '../utils/quizSession.js'
+import { loadSavedQuestions, savedQuestionKey, toggleSavedQuestion } from '../utils/savedQuestions.js'
 import { playCorrect, playWrong } from '../utils/sounds.js'
 import { useSubjectBackground } from '../hooks/useTheme.js'
 
@@ -35,7 +37,14 @@ function withSource(question, subjectId, chapterId) {
   }
 }
 
-async function createQuestionSet({ subjectId, chapterId, reviewMode, globalReview, questionCount }) {
+function restoreQuestionOrder(pool, session) {
+  if (!Array.isArray(session?.questionKeys) || session.questionKeys.length === 0) return null
+  const map = new Map(pool.map((question) => [savedQuestionKey(question), question]))
+  const restored = session.questionKeys.map((key) => map.get(key)).filter(Boolean)
+  return restored.length === session.questionKeys.length ? restored : null
+}
+
+async function createQuestionSet({ subjectId, chapterId, reviewMode, globalReview, globalSaved, questionCount, session }) {
   if (globalReview) {
     const mistakes = loadMistakes()
     const chapters = Object.entries(mistakes).flatMap(([mistakeSubjectId, subjectMistakes]) =>
@@ -46,16 +55,38 @@ async function createQuestionSet({ subjectId, chapterId, reviewMode, globalRevie
       }))
     )
     const entries = await loadQuestionsForChapters(chapters)
-    return shuffle(entries.flatMap((entry) => {
+    const pool = entries.flatMap((entry) => {
       const source = chapters.find((item) => item.subjectId === entry.subjectId && item.chapterId === entry.chapterId)
       return entry.questions
         .filter((question) => source?.ids.has(questionId(question)))
         .map((question) => withSource(question, entry.subjectId, entry.chapterId))
-    }))
+    })
+    return restoreQuestionOrder(pool, session) || shuffle(pool)
+  }
+
+  if (globalSaved) {
+    const savedItems = Object.values(loadSavedQuestions())
+    const chapters = savedItems.reduce((acc, item) => {
+      const key = `${item.subjectId}_${item.chapterId}`
+      const entry = acc.get(key) || { subjectId: item.subjectId, chapterId: item.chapterId, ids: new Set() }
+      entry.ids.add(item.questionId)
+      acc.set(key, entry)
+      return acc
+    }, new Map())
+    const entries = await loadQuestionsForChapters([...chapters.values()])
+    const pool = entries.flatMap((entry) => {
+      const source = chapters.get(`${entry.subjectId}_${entry.chapterId}`)
+      return entry.questions
+        .filter((question) => source?.ids.has(questionId(question)))
+        .map((question) => withSource(question, entry.subjectId, entry.chapterId))
+    })
+    return restoreQuestionOrder(pool, session) || shuffle(pool)
   }
 
   const questions = await loadChapterQuestions(subjectId, chapterId)
   const sourced = questions.map((question) => withSource(question, subjectId, chapterId))
+  const restored = restoreQuestionOrder(sourced, session)
+  if (restored) return restored
   if (reviewMode) {
     const wrongIds = new Set(loadMistakes()[subjectId]?.[chapterId] || [])
     return shuffle(sourced.filter((question) => wrongIds.has(question.sourceQuestionId)))
@@ -73,13 +104,22 @@ export default function Quiz() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const globalReview = subjectId === 'review' && chapterId === 'all'
-  useSubjectBackground(globalReview ? null : subjectId)
+  const globalSaved = subjectId === 'saved' && chapterId === 'all'
+  useSubjectBackground(globalReview || globalSaved ? null : subjectId)
 
-  const subject = globalReview ? null : quizMeta[subjectId]
+  const subject = globalReview || globalSaved ? null : quizMeta[subjectId]
   const chapter = subject?.chapters?.find((item) => item.id === Number(chapterId))
   const questionCount = parseInt(searchParams.get('count') || '10', 10)
-  const reviewMode = globalReview || searchParams.get('review') === 'mistakes'
-  const loadKey = `${subjectId}:${chapterId}:${reviewMode}:${globalReview}:${questionCount}`
+  const reviewMode = globalReview || globalSaved || searchParams.get('review') === 'mistakes'
+  const loadKey = `${subjectId}:${chapterId}:${reviewMode}:${globalReview}:${globalSaved}:${questionCount}`
+  const sessionParams = useMemo(() => ({
+    subjectId,
+    chapterId,
+    reviewMode,
+    globalReview,
+    globalSaved,
+    questionCount,
+  }), [chapterId, globalReview, globalSaved, questionCount, reviewMode, subjectId])
   const [questionState, setQuestionState] = useState({ key: '', questions: [], error: '' })
   const [retryNonce, setRetryNonce] = useState(0)
   const [currentQuestion, setCurrentQuestion] = useState(0)
@@ -89,16 +129,33 @@ export default function Quiz() {
   const [explainAtEnd, setExplainAtEnd] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
+    clearOldQuizSessions()
+  }, [])
 
-    createQuestionSet({ subjectId, chapterId, reviewMode, globalReview, questionCount })
+  useEffect(() => {
+    let cancelled = false
+    const session = loadQuizSession(sessionParams)
+
+    createQuestionSet({ subjectId, chapterId, reviewMode, globalReview, globalSaved, questionCount, session })
       .then((next) => {
         if (cancelled) return
-        setQuestionState({ key: loadKey, questions: next, error: '' })
-        setAnswers({})
-        setFlagged(new Set())
-        setShowReview(false)
-        setCurrentQuestion(0)
+        const questionMap = new Map(next.map((item) => [savedQuestionKey(item), item]))
+        const restoredQuestions = session?.questionKeys?.map((key) => questionMap.get(key)).filter(Boolean)
+        const canRestore = Array.isArray(restoredQuestions)
+          && restoredQuestions.length === session?.questionKeys?.length
+          && restoredQuestions.length > 0
+        const resolvedQuestions = canRestore ? restoredQuestions : next
+        const saved = loadSavedQuestions()
+
+        setQuestionState({ key: loadKey, questions: resolvedQuestions, error: '' })
+        setAnswers(canRestore ? (session.answers || {}) : {})
+        setFlagged(canRestore
+          ? new Set(session.flagged || [])
+          : new Set(resolvedQuestions.flatMap((item, index) => (saved[savedQuestionKey(item)] ? [index] : [])))
+        )
+        setShowReview(canRestore ? Boolean(session.showReview) : false)
+        setExplainAtEnd(canRestore ? Boolean(session.explainAtEnd) : false)
+        setCurrentQuestion(canRestore ? Math.min(session.currentQuestion || 0, resolvedQuestions.length - 1) : 0)
         if (!globalReview && subject && chapter) markLastStudy(subjectId, chapterId)
       })
       .catch((error) => {
@@ -113,7 +170,7 @@ export default function Quiz() {
     return () => {
       cancelled = true
     }
-  }, [chapter, chapterId, globalReview, loadKey, questionCount, retryNonce, reviewMode, subject, subjectId])
+  }, [chapter, chapterId, globalReview, globalSaved, loadKey, questionCount, retryNonce, reviewMode, sessionParams, subject, subjectId])
 
   const loading = questionState.key !== loadKey
   const loadError = !loading ? questionState.error : ''
@@ -125,12 +182,24 @@ export default function Quiz() {
   const answeredCount = Object.keys(answers).length
   const correctCount = Object.values(answers).filter((answer) => answer.isCorrect).length
   const progressPercent = total ? (answeredCount / total) * 100 : 0
-  const backTo = globalReview ? '/review' : `/chapter/${subjectId}/${chapterId}`
-  const pageTitle = globalReview ? 'All saved mistakes' : chapter?.name
-  const pageEyebrow = globalReview ? 'Mistake review' : (reviewMode ? 'Mistake review' : subject?.name)
+  const backTo = globalReview ? '/review' : (globalSaved ? '/stats' : `/chapter/${subjectId}/${chapterId}`)
+  const pageTitle = globalReview ? 'All saved mistakes' : (globalSaved ? 'Saved questions' : chapter?.name)
+  const pageEyebrow = globalReview ? 'Mistake review' : (globalSaved ? 'Saved review' : (reviewMode ? 'Mistake review' : subject?.name))
   const aiContext = globalReview
     ? 'Saved mistake review'
-    : `${subject?.name || 'Subject'} / ${chapter?.name || 'Chapter'}`
+    : (globalSaved ? 'Saved question review' : `${subject?.name || 'Subject'} / ${chapter?.name || 'Chapter'}`)
+
+  useEffect(() => {
+    if (loading || !questions.length) return
+    saveQuizSession(sessionParams, {
+      questionKeys: questions.map(savedQuestionKey),
+      currentQuestion,
+      answers,
+      flagged: [...flagged],
+      showReview,
+      explainAtEnd,
+    })
+  }, [answers, currentQuestion, explainAtEnd, flagged, loading, questions, sessionParams, showReview])
 
   const aiDraft = useMemo(() => {
     if (!question) return ''
@@ -177,10 +246,12 @@ export default function Quiz() {
   }, [currentQuestion, total])
 
   const toggleFlag = () => {
+    if (!question) return
+    const saved = toggleSavedQuestion(question)
     setFlagged((prev) => {
       const next = new Set(prev)
-      if (next.has(currentQuestion)) next.delete(currentQuestion)
-      else next.add(currentQuestion)
+      if (saved) next.add(currentQuestion)
+      else next.delete(currentQuestion)
       return next
     })
   }
@@ -205,8 +276,10 @@ export default function Quiz() {
       saveMistakes(entry.subjectId, entry.chapterId, entry.wrongIds, entry.fixedIds)
     })
 
-    if (globalReview) {
-      navigate('/review')
+    clearQuizSession(sessionParams)
+
+    if (globalReview || globalSaved) {
+      navigate(globalSaved ? '/stats' : '/review')
       return
     }
 
@@ -214,7 +287,7 @@ export default function Quiz() {
     navigate(`/results/${subjectId}/${chapterId}`, {
       state: { score: correctCount, total, review: reviewMode },
     })
-  }, [answers, chapterId, correctCount, globalReview, navigate, questions, reviewMode, subjectId, total])
+  }, [answers, chapterId, correctCount, globalReview, globalSaved, navigate, questions, reviewMode, sessionParams, subjectId, total])
 
   useEffect(() => {
     const onKey = (event) => {
@@ -234,7 +307,7 @@ export default function Quiz() {
     return () => window.removeEventListener('keydown', onKey)
   }, [goNext, handleAnswer, hasAnswered, question, showReview])
 
-  if (!globalReview && (!subject || !chapter)) {
+  if (!globalReview && !globalSaved && (!subject || !chapter)) {
     return (
       <PageTransition>
         <PageShell size="narrow">
@@ -288,8 +361,8 @@ export default function Quiz() {
           <AppNav backTo={backTo} />
           <EmptyState
             icon={reviewMode ? RotateCcw : CheckCircle2}
-            title={reviewMode ? 'No mistakes to review' : 'No questions yet'}
-            description={reviewMode ? 'There are no saved mistakes in this set right now.' : 'Questions have not been added for this chapter.'}
+            title={globalSaved ? 'No saved questions' : (reviewMode ? 'No mistakes to review' : 'No questions yet')}
+            description={globalSaved ? 'Flag questions during a quiz to collect them here.' : (reviewMode ? 'There are no saved mistakes in this set right now.' : 'Questions have not been added for this chapter.')}
             action={<Button to={backTo}>Back</Button>}
           />
         </PageShell>
@@ -306,7 +379,7 @@ export default function Quiz() {
             icon={ListChecks}
             eyebrow={pageEyebrow}
             title="Review before finishing"
-            description={`${correctCount} correct / ${total - answeredCount} unanswered / ${flagged.size} flagged`}
+            description={`${correctCount} correct / ${total - answeredCount} unanswered / ${flagged.size} saved`}
           />
 
           <Card className="quiz-card">
@@ -326,7 +399,7 @@ export default function Quiz() {
                     }}
                   >
                     <strong>{index + 1}</strong>
-                    <span>{state}{flagged.has(index) ? ' / flagged' : ''}</span>
+                    <span>{state}{flagged.has(index) ? ' / saved' : ''}</span>
                   </button>
                 )
               })}
@@ -367,8 +440,8 @@ export default function Quiz() {
               <span>{explainAtEnd ? 'Explain at end' : 'Explain now'}</span>
             </button>
             <button type="button" className="tool-chip" data-active={flagged.has(currentQuestion)} onClick={toggleFlag}>
-              {flagged.has(currentQuestion) ? <FlagOff size={15} /> : <Flag size={15} />}
-              <span>{flagged.has(currentQuestion) ? 'Unflag' : 'Flag'}</span>
+              {flagged.has(currentQuestion) ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+              <span>{flagged.has(currentQuestion) ? 'Saved' : 'Save'}</span>
             </button>
           </div>
 

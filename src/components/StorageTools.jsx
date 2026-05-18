@@ -10,6 +10,7 @@ const RESET_GROUPS = [
   { label: 'Tasks', keys: ['learnflow-todos'] },
   { label: 'Videos', keys: ['learnflow-videos'] },
   { label: 'Reports', keys: ['learnflow-question-feedback'] },
+  { label: 'Saved Qs', keys: ['learnflow-saved-questions', 'learnflow-quiz-session'] },
   { label: 'Theme', keys: ['learnflow-theme', 'learnflow-saved-themes'] },
 ]
 

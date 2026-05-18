@@ -7,6 +7,8 @@ export const BACKUP_KEYS = [
   'learnflow-videos',
   'learnflow-quiz-count',
   'learnflow-question-feedback',
+  'learnflow-saved-questions',
+  'learnflow-quiz-session',
   'learnflow-theme',
   'learnflow-saved-themes',
 ]
